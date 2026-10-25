@@ -47,7 +47,9 @@ const errors = []
 page.on('pageerror', (e) => errors.push(e.message))
 page.on('console', (m) => m.type() === 'error' && !/Failed to load resource/.test(m.text()) && errors.push(m.text()))
 await page.route((u) => u.pathname === '/panel/' && u.search.includes('format=json'), (r) => r.fulfill({ contentType: 'application/json', body: readFileSync(`${FIX}index.json`) }))
-await page.route((u) => u.pathname.startsWith('/panel/Layout/'), (r) => r.fulfill({ contentType: 'application/json', body: readFileSync(`${FIX}Layout-My Layout.xml`) }))
+await page.route((u) => u.pathname.startsWith('/panel/Layout/'), (r) =>
+  r.fulfill({ contentType: 'application/json', body: readFileSync(`${FIX}Layout-${decodeURIComponent(new URL(r.request().url()).pathname.slice('/panel/Layout/'.length))}.xml`) }),
+)
 await page.route((u) => u.pathname.startsWith('/panel/Panel/'), (r) => r.fulfill({ contentType: 'application/json', body: readFileSync(`${FIX}Panel-Operations Demo Panel.xml`) }))
 const go = async (r) => {
   await page.evaluate((r) => (location.hash = '#/' + r), r)
@@ -184,6 +186,32 @@ await post('sensor/IS101', { state: 4 })
 const a0 = (await rest(`signalMast/${encodeURIComponent(mast)}`)).data.aspect
 await page.getByRole('button', { name: /^Signal IF\$vsm:basic:one-low\(\$0001\)/ }).click()
 check(await until(async () => (await rest(`signalMast/${encodeURIComponent(mast)}`)).data.aspect !== a0), 'clicking a mast icon cycles its aspect')
+// Slips and turntable (Yard Throat fixture). Start from known states: double slip SL2 on A-C, turntable on no ray.
+const tstate = async (n) => (await rest(`turnout/${n}`)).data.state
+for (const n of ['IT201', 'IT202', 'IT203', 'IT204', 'IT211', 'IT212', 'IT213', 'IT214']) {
+  await fetch(`${BASE}/json/turnout`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: n }) })
+  await post(`turnout/${n}`, { state: 2 })
+}
+await page.getByRole('button', { name: 'Yard Throat' }).click()
+await page.locator('[data-slip="SL2"][data-route="AC"]').waitFor()
+check(true, 'double slip SL2 drawn on route A-C from its turnouts')
+await page.getByRole('button', { name: /^Slip SL2 right side/ }).click()
+check(await until(async () => (await tstate('IT203')) === 2 && (await tstate('IT204')) === 4), 'slip right side: A-C → A-D sets IT203 closed, IT204 thrown')
+await page.locator('[data-slip="SL2"][data-route="AD"]').waitFor()
+await page.getByRole('button', { name: /^Slip SL2 left side/ }).click()
+check(await until(async () => (await tstate('IT203')) === 4 && (await tstate('IT204')) === 4), 'slip left side: A-D → B-D throws both turnouts')
+await page.getByRole('button', { name: /^Slip SL2 right side/ }).click()
+check(await until(async () => (await tstate('IT203')) === 4 && (await tstate('IT204')) === 2), 'double slip right side: B-D → B-C')
+await page.getByRole('button', { name: /^Slip SL1 left side/ }).click()
+check(await until(async () => (await tstate('IT201')) === 4 && (await tstate('IT202')) === 4), 'single slip left side: A-C → B-D')
+check((await page.locator('[data-turntable="TUR1"]').getAttribute('data-position')) === '-1', 'turntable shows no bridge while no ray is lined up')
+await page.getByRole('button', { name: /^Turntable TUR1 ray 52/ }).click()
+check(await until(async () => (await tstate('IT213')) === 4), 'tapping turntable ray 52 throws its turnout IT213')
+check(await until(async () => (await page.locator('[data-turntable="TUR1"]').getAttribute('data-position')) === '52'), 'turntable bridge points at ray 52')
+await post('turnout/IT213', { state: 2 })
+await post('turnout/IT211', { state: 4 })
+check(await until(async () => (await page.locator('[data-turntable="TUR1"]').getAttribute('data-position')) === '50'), 'turntable follows a change made elsewhere (ray 50)')
+
 await page.getByRole('button', { name: 'Operations Demo Panel' }).click()
 await page.getByText('Susanville').waitFor()
 check(true, 'Panel Editor panel renders')

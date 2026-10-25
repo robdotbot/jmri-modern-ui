@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { ACTIVE, CLOSED, HEAD, INACTIVE, OFF, ON, THROWN } from '../jmri/protocol.ts'
-import { javaColor, parsePanel, segmentPath, type LayoutModel, type PanelListItem, type PanelModel, type Positionable, type TextStyle } from '../jmri/panel.ts'
+import { javaColor, nextSlipState, parsePanel, segmentPath, slipState, type LayoutModel, type PanelListItem, type PanelModel, type Positionable, type SlipState, type TextStyle } from '../jmri/panel.ts'
 import { KEYS, useClient, useJmri, useStored } from '../state.tsx'
 
 const ROUTE_TYPE: Record<string, string> = { Layout: 'Layout Editor', Panel: 'Panel Editor', 'Control Panel': 'Control Panel', Switchboard: 'Switchboard' }
@@ -206,6 +206,110 @@ function LayoutTrack({ layout, control }: { layout: LayoutModel; control: boolea
             </g>
           )
         })}
+      {layout.slips
+        .filter((sl) => !sl.hidden)
+        .map((sl) => {
+          const a = sl.turnout ? turnouts[sl.turnout]?.state : undefined
+          const b = sl.turnoutB ? turnouts[sl.turnoutB]?.state : undefined
+          const current = slipState(sl, a, b)
+          const w = layout.trackWidth.mainBlock
+          const routes: [SlipState, string, string | null][] = [
+            ['AC', `M${sl.a.x},${sl.a.y} L${sl.c.x},${sl.c.y}`, sl.blocks.a],
+            ['BD', `M${sl.b.x},${sl.b.y} L${sl.d.x},${sl.d.y}`, sl.blocks.b],
+            ['AD', `M${sl.a.x},${sl.a.y} Q${sl.center.x},${sl.center.y} ${sl.d.x},${sl.d.y}`, sl.blocks.a],
+            ...(sl.double ? [['BC', `M${sl.b.x},${sl.b.y} Q${sl.center.x},${sl.center.y} ${sl.c.x},${sl.c.y}`, sl.blocks.b] as [SlipState, string, string | null]] : []),
+          ]
+          const set = (side: 'left' | 'right') => {
+            const next = nextSlipState(sl, current, side)
+            const [sa, sb] = sl.states[next] ?? []
+            if (sl.turnout && sa) client.setBeanState('turnout', sl.turnout, sa)
+            if (sl.turnoutB && sb) client.setBeanState('turnout', sl.turnoutB, sb)
+          }
+          const sideAt = (p: { x: number; y: number }, q: { x: number; y: number }) => ({
+            x: sl.center.x + ((p.x + q.x) / 2 - sl.center.x) * 0.5,
+            y: sl.center.y + ((p.y + q.y) / 2 - sl.center.y) * 0.5,
+          })
+          const r = Math.max(6, layout.circleSize * 3)
+          return (
+            <g key={sl.ident} data-slip={sl.ident} data-route={current ?? 'unknown'}>
+              {routes.map(([k, d, block]) =>
+                current === k || current == null || layout.drawUnselectedLeg ? (
+                  <path key={k} d={d} fill="none" stroke={color(block)} strokeWidth={current === k ? w : 1} opacity={current === k ? 1 : 0.55} strokeLinecap="round" />
+                ) : null,
+              )}
+              {layout.turnoutCircles &&
+                [sideAt(sl.a, sl.b), sideAt(sl.c, sl.d)].map((p, i) => (
+                  <circle key={i} cx={p.x} cy={p.y} r={layout.circleSize * 2.5} fill="none" stroke={layout.colors.circle} strokeWidth={1} />
+                ))}
+              {control &&
+                (sl.turnout || sl.turnoutB) &&
+                !sl.disabled &&
+                (['left', 'right'] as const).map((side) => {
+                  const p = side === 'left' ? sideAt(sl.a, sl.b) : sideAt(sl.c, sl.d)
+                  return (
+                    <circle
+                      key={side}
+                      className="panel-hit"
+                      role="button"
+                      aria-label={`Slip ${sl.ident} ${side} side: ${current ? `${current[0]} to ${current[1]}` : 'unknown'}`}
+                      tabIndex={0}
+                      cx={p.x}
+                      cy={p.y}
+                      r={r}
+                      onClick={() => set(side)}
+                      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), set(side))}
+                    />
+                  )
+                })}
+            </g>
+          )
+        })}
+      {layout.turntables.map((tt) => {
+        // JMRI's position: the ray whose turnout is in that ray's state.
+        const position = tt.turnoutControlled ? tt.rays.find((r) => r.turnout && turnouts[r.turnout]?.state === r.turnoutState) : undefined
+        const pit = color(tt.block)
+        const r = Math.max(6, layout.circleSize * 3)
+        return (
+          <g key={tt.ident} data-turntable={tt.ident} data-position={position?.index ?? -1}>
+            <circle cx={tt.center.x} cy={tt.center.y} r={tt.radius} fill="none" stroke={layout.colors.track} strokeWidth={2} />
+            <circle cx={tt.center.x} cy={tt.center.y} r={Math.max(tt.radius / 4, 4)} fill="none" stroke={layout.colors.track} strokeWidth={2} />
+            {tt.rays.map((ray) => (
+              <line key={ray.index} x1={ray.edge.x} y1={ray.edge.y} x2={ray.end.x} y2={ray.end.y} stroke={pit} strokeWidth={layout.trackWidth.sideBlock} strokeLinecap="round" />
+            ))}
+            {position && (
+              // Asymmetric bridge, long end towards the selected ray, as JMRI draws it.
+              <line
+                className="turntable-bridge"
+                x1={tt.center.x - (position.edge.x - tt.center.x) * 0.8}
+                y1={tt.center.y - (position.edge.y - tt.center.y) * 0.8}
+                x2={position.edge.x}
+                y2={position.edge.y}
+                stroke={pit}
+                strokeWidth={layout.trackWidth.mainBlock}
+                strokeLinecap="round"
+              />
+            )}
+            {control &&
+              tt.rays
+                .filter((ray) => ray.turnout && !ray.disabled)
+                .map((ray) => (
+                  <circle
+                    key={ray.index}
+                    className="panel-hit"
+                    role="button"
+                    aria-label={`Turntable ${tt.ident} ray ${ray.index}${position === ray ? ' (selected)' : ''}`}
+                    aria-pressed={position === ray}
+                    tabIndex={0}
+                    cx={ray.end.x}
+                    cy={ray.end.y}
+                    r={r}
+                    onClick={() => client.setBeanState('turnout', ray.turnout!, ray.turnoutState)}
+                    onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), client.setBeanState('turnout', ray.turnout!, ray.turnoutState))}
+                  />
+                ))}
+          </g>
+        )
+      })}
     </svg>
   )
 }
