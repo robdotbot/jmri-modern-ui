@@ -26,6 +26,98 @@ It has two parts:
 
 Everything updates live: changes made from DecoderPro, PanelPro, WiThrottle, Engine Driver or another browser are pushed to every open page. On a phone the four most-used screens sit in the bottom bar and the rest are under **More**.
 
+## Screenshots
+
+Taken from JMRI 5.6 running the test railroad (`tests/fixtures/TestRailroad.jmri`) with the add-on.
+
+### Throttles
+
+Two locos on throttles; UP 844 at 50% with its headlight and bell on. Function names come from the roster.
+
+![Throttles](docs/screenshots/throttles.png)
+
+### Roster
+
+![Roster](docs/screenshots/roster.png)
+
+### Consists
+
+An advanced consist on address 12, with the trailing loco reversed.
+
+![Consists](docs/screenshots/consists.png)
+
+### Panels
+
+A Layout Editor panel with live turnouts, sensors and signal masts:
+
+![Layout Editor panel](docs/screenshots/panel-layout-editor.png)
+
+A Panel Editor panel (the Operations demo railroad):
+
+![Panel Editor panel](docs/screenshots/panel-editor.png)
+
+### Turnouts, Routes, Sensors, Lights, Blocks
+
+![Turnouts](docs/screenshots/turnouts.png)
+
+![Sensors](docs/screenshots/sensors.png)
+
+### Signals
+
+![Signals](docs/screenshots/signals.png)
+
+Tapping a mast offers its valid aspects, with Held and Lit:
+
+![Signal aspects](docs/screenshots/signal-aspects.png)
+
+### Memories
+
+![Memories](docs/screenshots/memories.png)
+
+### Operations
+
+Trains with their route timeline; train BB is built and waiting to move to Port Arthur:
+
+![Trains](docs/screenshots/operations-trains.png)
+
+Its manifest:
+
+![Manifest](docs/screenshots/operations-manifest.png)
+
+Cars (engines work the same way):
+
+![Cars](docs/screenshots/operations-cars.png)
+
+### Programming
+
+**Read decoder** on the programming track: the maker and possible models from CV7/CV8, and the active address.
+
+![Programming](docs/screenshots/programming.png)
+
+### Logic
+
+![Logic](docs/screenshots/logic.png)
+
+A LogixNG's tree:
+
+![LogixNG](docs/screenshots/logic-logixng.png)
+
+### Settings
+
+![Settings](docs/screenshots/settings.png)
+
+### Dark theme
+
+![Dark theme](docs/screenshots/throttles-dark.png)
+
+### On a phone
+
+<p>
+  <img src="docs/screenshots/phone-throttle.png" width="260" alt="Throttle on a phone">
+  <img src="docs/screenshots/phone-panel.png" width="260" alt="Panel on a phone">
+  <img src="docs/screenshots/phone-more.png" width="260" alt="The More menu on a phone">
+</p>
+
 ## Use it with your JMRI
 
 1. In JMRI (PanelPro/DecoderPro): **Preferences → Start Up → Add → Perform action → Start Web Server**. Restart JMRI.
@@ -89,6 +181,8 @@ The tests also cover:
 - a 390 px phone layout on every screen;
 - the throttle safety net: with JMRI's throttle replies cut off, the card must warn, its power-off button must work, and a stalled acquisition must be explained.
 
+With the same JMRI running, `node scripts/screenshots.mjs` retakes the README screenshots into `docs/screenshots/`. It sets up some state (turnout and sensor states, a consist, a built train, decoder CVs) and removes the consist and resets the train afterwards.
+
 Headless JMRI can't open panels. The panel tests therefore serve the panel XML captured from PanelPro (`tests/fixtures/panels/`) in place of `/panel`, while every turnout, sensor and signal they click is live JMRI.
 
 `tests/e2e-noaddon.mjs` checks the app with JMRI started *without* the add-on:
@@ -107,6 +201,7 @@ src/state.tsx          React bindings (useSyncExternalStore), routing, theme, pe
 src/views/*            Screens
 addon/                 JMRI add-on: JSON types programmer, logix, logixng, signalAspects, trainAction
 scripts/deploy.mjs     Installs the app and add-on
+scripts/screenshots.mjs  Retakes the README screenshots
 ```
 
 ### The add-on's JSON types
