@@ -60,6 +60,8 @@ export interface ProgramOp {
   mode?: string
   address?: number
   isLongAddress?: boolean
+  /** Program through the facades this decoder definition declares (indexed CVs), as DecoderPro does. */
+  decoderFile?: string
 }
 
 export interface ProgramResult {

@@ -1,9 +1,11 @@
 package org.jmri.modernui;
 
 import static org.jmri.modernui.ModernUiServiceFactory.ADDON;
+import static org.jmri.modernui.ModernUiServiceFactory.DECODER_DEFINITION;
 import static org.jmri.modernui.ModernUiServiceFactory.LOGIX;
 import static org.jmri.modernui.ModernUiServiceFactory.LOGIXNG;
 import static org.jmri.modernui.ModernUiServiceFactory.PROGRAMMER;
+import static org.jmri.modernui.ModernUiServiceFactory.ROSTER_CVS;
 import static org.jmri.modernui.ModernUiServiceFactory.SIGNAL_ASPECTS;
 import static org.jmri.modernui.ModernUiServiceFactory.TRAIN_ACTION;
 
@@ -64,6 +66,10 @@ public class ModernUiHttpService extends JsonHttpService {
                 return message(LOGIXNG, logixNG(findLogixNG(name, request)), request.id);
             case SIGNAL_ASPECTS:
                 return message(SIGNAL_ASPECTS, signalAspects(name, data.path("imageset").asText("default"), request), request.id);
+            case DECODER_DEFINITION:
+                return message(DECODER_DEFINITION, DecoderSupport.definition(mapper, data, request.id), request.id);
+            case ROSTER_CVS:
+                return message(ROSTER_CVS, DecoderSupport.rosterCvs(mapper, name, request.id), request.id);
             default:
                 throw new JsonException(400, "Unknown type " + type, request.id);
         }
@@ -229,6 +235,8 @@ public class ModernUiHttpService extends JsonHttpService {
             }
             case TRAIN_ACTION:
                 return message(TRAIN_ACTION, trainAction(name, data, request), request.id);
+            case ROSTER_CVS:
+                return message(ROSTER_CVS, DecoderSupport.saveRosterCvs(mapper, name, data, request.id), request.id);
             default:
                 // programmer posts are asynchronous and handled by the socket service
                 throw new JsonException(405, type + " can't be changed over HTTP", request.id);

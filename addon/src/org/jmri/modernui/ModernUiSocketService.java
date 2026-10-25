@@ -36,7 +36,9 @@ import org.slf4j.LoggerFactory;
  * replies asynchronously, when the decoder answers, with
  * {@code {"type":"programmer","data":{"op","cv","value","status","ok","message","mode"},"id":7}}.
  * Add {@code "address"} (and optionally {@code "isLongAddress"}) for operations-mode
- * (programming on the main), and {@code "mode"} to choose a programming mode.
+ * (programming on the main), {@code "mode"} to choose a programming mode, and
+ * {@code "decoderFile"} to program through the facades that decoder definition declares
+ * (needed for indexed CVs such as {@code "16.2.257"}).
  * <p>
  * Logix/LogixNG: get, list and post ({@code enabled}; for a ConditionalNG also
  * {@code execute}). Listing subscribes to enable/disable changes.
@@ -53,6 +55,16 @@ public class ModernUiSocketService extends JsonSocketService<ModernUiHttpService
 
     @Override
     public void onMessage(String type, JsonNode data, JsonRequest request) throws IOException, JsonException {
+        try {
+            handle(type, data, request);
+        } catch (RuntimeException e) {
+            // Uncaught, JMRI would close the whole socket (and release the client's throttles).
+            log.error("{} request failed", type, e);
+            throw new JsonException(500, type + " failed: " + e, request.id);
+        }
+    }
+
+    private void handle(String type, JsonNode data, JsonRequest request) throws IOException, JsonException {
         String name = data.path("name").asText("");
         if (PROGRAMMER.equals(type)) {
             if ("post".equals(request.method) || data.has("op")) {
@@ -128,6 +140,8 @@ public class ModernUiSocketService extends JsonSocketService<ModernUiHttpService
         if (p == null) {
             throw new JsonException(503, "No programmer available", request.id);
         }
+        // Indexed CVs etc. need the facades the decoder file declares, as in DecoderPro.
+        p = DecoderSupport.withFacades(p, data.path("decoderFile").asText(""), request.id);
         if (data.hasNonNull("mode")) {
             String wanted = data.path("mode").asText();
             ProgrammingMode mode = p.getSupportedModes().stream()

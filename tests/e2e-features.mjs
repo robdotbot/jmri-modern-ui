@@ -84,6 +84,34 @@ await page.getByRole('button', { name: 'Read decoder' }).click()
 await page.getByText(/long, CV17\/18/).waitFor({ timeout: 30000 })
 check((await page.locator('td', { hasText: 'long, CV17/18' }).innerText()).startsWith('1234'), 'Read decoder shows active long address 1234')
 
+// Decoder settings: DecoderPro's panes for the roster loco's decoder definition.
+await page.getByRole('button', { name: 'Decoder settings' }).click()
+await page.getByLabel('Roster loco').selectOption('UP 844')
+const panes = page.getByRole('tablist', { name: 'Panes' })
+await panes.waitFor({ timeout: 30000 })
+const paneNames = await panes.getByRole('tab').allInnerTexts()
+check(paneNames.includes('Basic') && paneNames.includes('Function Map') && !paneNames.includes('Sound'), `programmer panes shown, empty ones hidden (${paneNames.join(', ')})`)
+r = await wsProgram({ op: 'write', cv: '29', value: 34 }) // long address, 28/128 steps, normal direction
+await page.getByRole('button', { name: 'Read pane' }).click()
+check(await until(async () => (await page.getByLabel('Active address').inputValue()) === '1234', 30000), 'Basic pane read: active address 1234 from CV17/18/29')
+await until(async () => page.getByRole('button', { name: 'Read pane' }).isEnabled(), 60000)
+const dir = page.getByLabel('Locomotive Direction', { exact: true })
+await dir.selectOption({ index: 1 })
+await page.getByRole('button', { name: /^Write changes/ }).click()
+check(await until(async () => ((await wsProgram({ op: 'read', cv: '29' }))?.data?.value & 1) === 1, 20000), 'named setting "Locomotive Direction" written: CV29 bit 0 set (independent read)')
+await page.getByRole('button', { name: 'Save to roster' }).click()
+const wsRequest = async (type, data) => {
+  const id = ++wsId
+  ws.send(JSON.stringify({ type, data, id }))
+  return until(async () => inbox.find((m) => m.id === id), 10000)
+}
+check(await until(async () => (await wsRequest('rosterCvs', { name: 'UP 844' }))?.data?.values?.['29']?.value === 35), 'Save to roster stores CV29 = 35 in the roster entry')
+await page.getByRole('button', { name: 'Quick setup' }).click()
+// Indexed CVs go through the facades the decoder definition declares (ESU: CV31/32 pages), as in DecoderPro.
+r = await wsProgram({ op: 'write', cv: '16.0.259', value: 5, decoderFile: 'ESU_LokSound5.xml' })
+const idx = await wsProgram({ op: 'read', cv: '16.0.259', decoderFile: 'ESU_LokSound5.xml' })
+check(r?.data?.ok && idx?.data?.value === 5 && (await wsProgram({ op: 'read', cv: '31' }))?.data?.value === 16, 'indexed CV 16.0.259 programmed through the ESU definition\'s facades')
+
 // ---------- logic ----------
 await go('logic')
 await page.getByRole('switch', { name: /Enable IQ:AUTO:0001/ }).click()

@@ -20,11 +20,15 @@ public class ModernUiServiceFactory implements JsonServiceFactory<ModernUiHttpSe
     public static final String SIGNAL_ASPECTS = "signalAspects";
     /** Build / reset / move / terminate an operations train; JMRI's JSON can only move and terminate. */
     public static final String TRAIN_ACTION = "trainAction";
-    public static final String VERSION = "1.1.0";
+    /** Decoder definition or programmer (pane) file, with XIncludes resolved: {@code get {file}} or {@code get {programmer}}. */
+    public static final String DECODER_DEFINITION = "decoderDefinition";
+    /** A roster entry's decoder and stored CV values: {@code get {name}}, {@code post {name, values, decoderFamily?, decoderModel?}}. */
+    public static final String ROSTER_CVS = "rosterCvs";
+    public static final String VERSION = "1.2.0";
 
     @Override
     public String[] getTypes(String version) {
-        return new String[]{PROGRAMMER, LOGIX, LOGIXNG, ADDON, SIGNAL_ASPECTS, TRAIN_ACTION};
+        return new String[]{PROGRAMMER, LOGIX, LOGIXNG, ADDON, SIGNAL_ASPECTS, TRAIN_ACTION, DECODER_DEFINITION, ROSTER_CVS};
     }
 
     @Override
