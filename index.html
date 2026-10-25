@@ -10,6 +10,13 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <link rel="manifest" href="./manifest.webmanifest" />
     <title>JMRI</title>
+    <script>
+      // Apply a saved light/dark choice before first paint so the page doesn't flash the OS theme.
+      try {
+        const t = JSON.parse(localStorage.getItem('jmri.theme'))
+        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t
+      } catch {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

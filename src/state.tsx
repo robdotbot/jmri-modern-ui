@@ -55,13 +55,27 @@ export const KEYS = {
 
 export type Theme = 'system' | 'light' | 'dark'
 
-export function useTheme(): [Theme, (t: Theme) => void] {
+const darkQuery = matchMedia('(prefers-color-scheme: dark)')
+const subscribeDark = (cb: () => void) => {
+  darkQuery.addEventListener('change', cb)
+  return () => darkQuery.removeEventListener('change', cb)
+}
+
+/** Stored theme preference, its setter, and whether dark is in effect right now (follows the OS on 'system'). */
+export function useTheme(): [Theme, (t: Theme) => void, boolean] {
   const [theme, setTheme] = useStored<Theme>(KEYS.theme, 'system')
+  const systemDark = useSyncExternalStore(subscribeDark, () => darkQuery.matches)
+  const dark = theme === 'dark' || (theme === 'system' && systemDark)
   useEffect(() => {
     if (theme === 'system') delete document.documentElement.dataset.theme
     else document.documentElement.dataset.theme = theme
   }, [theme])
-  return [theme, setTheme]
+  useEffect(() => {
+    // Browser chrome (mobile address bar, installed PWA title bar) follows the in-app choice, not just the OS.
+    const color = dark ? '#0d1117' : '#f6f8fa'
+    for (const m of document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')) m.content = color
+  }, [dark])
+  return [theme, setTheme, dark]
 }
 
 /** Simple hash router: #/throttles, #/roster, ... */
