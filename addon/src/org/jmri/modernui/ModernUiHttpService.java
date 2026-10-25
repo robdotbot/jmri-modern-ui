@@ -4,6 +4,7 @@ import static org.jmri.modernui.ModernUiServiceFactory.ADDON;
 import static org.jmri.modernui.ModernUiServiceFactory.DECODER_DEFINITION;
 import static org.jmri.modernui.ModernUiServiceFactory.LOGIX;
 import static org.jmri.modernui.ModernUiServiceFactory.LOGIXNG;
+import static org.jmri.modernui.ModernUiServiceFactory.PANEL_EDIT;
 import static org.jmri.modernui.ModernUiServiceFactory.PROGRAMMER;
 import static org.jmri.modernui.ModernUiServiceFactory.ROSTER_CVS;
 import static org.jmri.modernui.ModernUiServiceFactory.SIGNAL_ASPECTS;
@@ -222,6 +223,8 @@ public class ModernUiHttpService extends JsonHttpService {
             }
             case STORE_CONFIG:
                 return message(STORE_CONFIG, StoreConfig.store(mapper, data, request.id), request.id);
+            case PANEL_EDIT:
+                return message(PANEL_EDIT, PanelEditing.edit(mapper, name, data, request.id), request.id);
             case TRAIN_ACTION:
                 return message(TRAIN_ACTION, trainAction(name, data, request), request.id);
             case ROSTER_CVS:

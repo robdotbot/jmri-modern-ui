@@ -41,7 +41,8 @@ export interface IconState {
   scale: number
 }
 
-export type Positionable =
+/** `tag` is the element name the servlet used, which the add-on needs to find the item again for editing. */
+export type Positionable = { tag: string } & (
   | { kind: 'label'; x: number; y: number; level: number; text?: string; icon?: IconState; style: TextStyle }
   | {
       kind: 'sensor' | 'turnout' | 'light'
@@ -58,6 +59,7 @@ export type Positionable =
   | { kind: 'signalMast'; x: number; y: number; level: number; bean: string; icons: Record<string, IconState>; degrees: number; scale: number; clickmode: number; control: boolean }
   | { kind: 'signalHead'; x: number; y: number; level: number; bean: string; icons: Record<string, IconState>; clickmode: number; control: boolean }
   | { kind: 'memory'; x: number; y: number; level: number; bean: string; style: TextStyle; states: { value: string; icon: IconState }[] }
+)
 
 export interface TextStyle {
   size: number
@@ -162,7 +164,7 @@ export interface LayoutModel {
   turnoutCircles: boolean
   circleSize: number
   drawUnselectedLeg: boolean
-  points: Point[]
+  points: (Point & { ident: string })[]
   turnouts: LayoutTurnout[]
   slips: LayoutSlip[]
   turntables: LayoutTurntable[]
@@ -271,7 +273,7 @@ export function parsePanel(xml: string): PanelModel {
   const blocks: Record<string, LayoutBlockInfo> = {}
 
   for (const el of root.children) {
-    const base = { x: num(el, 'x'), y: num(el, 'y'), level: num(el, 'level', 1) }
+    const base = { x: num(el, 'x'), y: num(el, 'y'), level: num(el, 'level', 1), tag: el.nodeName }
     const control = controlling && !yes(el, 'forcecontroloff')
     if (yes(el, 'hidden')) continue
     switch (el.nodeName) {
@@ -529,7 +531,7 @@ export function parsePanel(xml: string): PanelModel {
       turnoutCircles: yes(root, 'turnoutcircles'),
       circleSize: num(root, 'turnoutcirclesize', 2),
       drawUnselectedLeg: yes(root, 'turnoutdrawunselectedleg'),
-      points: [...pointByKey.entries()].filter(([k]) => k.endsWith('.POS_POINT')).map(([, p]) => p),
+      points: [...pointByKey.entries()].filter(([k]) => k.endsWith('.POS_POINT')).map(([k, p]) => ({ ...p, ident: k.slice(0, -'.POS_POINT'.length) })),
       turnouts,
       slips,
       turntables,

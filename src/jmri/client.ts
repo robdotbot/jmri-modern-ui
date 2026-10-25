@@ -569,8 +569,9 @@ export class JmriClient {
     this.set({ unstored: false })
   }
 
-  /** For edits made elsewhere in the client (panels). */
-  markUnstored() {
+  /** Change an open panel (add-on PanelEditing): move/delete/text/add an item, or move Layout Editor track. */
+  async panelEdit(panel: string, edit: Record<string, unknown>) {
+    await this.request({ type: 'panelEdit', method: 'post', data: { name: panel, ...edit } })
     this.set({ unstored: true })
   }
 

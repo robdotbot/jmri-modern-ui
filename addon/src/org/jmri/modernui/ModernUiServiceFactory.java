@@ -32,7 +32,7 @@ public class ModernUiServiceFactory implements JsonServiceFactory<ModernUiHttpSe
 
     @Override
     public String[] getTypes(String version) {
-        return new String[]{PROGRAMMER, LOGIX, LOGIXNG, ADDON, SIGNAL_ASPECTS, TRAIN_ACTION, DECODER_DEFINITION, ROSTER_CVS, STORE_CONFIG};
+        return new String[]{PROGRAMMER, LOGIX, LOGIXNG, ADDON, SIGNAL_ASPECTS, TRAIN_ACTION, DECODER_DEFINITION, ROSTER_CVS, STORE_CONFIG, PANEL_EDIT};
     }
 
     @Override
