@@ -73,6 +73,7 @@ function ConsistCard({ c, onDrive }: { c: ConsistData; onDrive: () => void }) {
         <span className="title">
           {c.name || `Consist ${c.address}`} <span className="pill mono">#{c.address}</span>
         </span>
+        {busy && <span className="pill warn" title="JMRI writes CV19 on each loco, which takes a moment">Updating…</span>}
         <button
           className="btn primary"
           disabled={engines.length === 0}
@@ -282,7 +283,7 @@ function CreateConsist({ onClose }: { onClose: () => void }) {
             Cancel
           </button>
           <button className="btn primary" disabled={!valid || busy}>
-            Create
+            {busy ? 'Creating…' : 'Create'}
           </button>
         </div>
       </form>

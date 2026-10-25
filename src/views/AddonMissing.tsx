@@ -5,17 +5,20 @@ export function AddonMissing({ feature }: { feature: string }) {
       <div className="card pad">
         <h2>{feature} needs the JMRI add-on</h2>
         <p>
-          JMRI's web server has no {feature.toLowerCase()} support of its own. This app ships a small add-on jar that
-          adds it without changing your JMRI install.
+          JMRI's web server has no {feature.toLowerCase()} support of its own. This app comes with a small add-on that
+          provides it. The add-on plugs into JMRI's extension point, so your JMRI install itself isn't changed.
         </p>
         <ol>
           <li>
-            Copy <span className="mono">jmri-modern-ui-addon.jar</span> into your JMRI settings folder (on a Mac,{' '}
-            <span className="mono">~/Library/Preferences/JMRI</span>). <span className="mono">npm run deploy</span> does this.
+            On the JMRI computer, in this app's folder, run <span className="mono">npm run build:addon</span> and then{' '}
+            <span className="mono">npm run deploy -- --configure</span>. That copies{' '}
+            <span className="mono">jmri-modern-ui-addon.jar</span> into the JMRI settings folder and adds it to{' '}
+            <span className="mono">jmri.conf</span>, so JMRI's launcher loads it.
           </li>
           <li>
-            Add this line to <span className="mono">jmri.conf</span> in that folder:
-            <pre className="mono code">default_options="--cp:a=jmri-modern-ui-addon.jar"</pre>
+            Or by hand: add <span className="mono">--cp:a=/full/path/to/jmri-modern-ui-addon.jar</span> to{' '}
+            <span className="mono">default_options</span> in <span className="mono">jmri.conf</span> in the JMRI settings
+            folder. On Windows, copy the jar into JMRI's <span className="mono">lib</span> folder instead.
           </li>
           <li>Restart JMRI.</li>
         </ol>

@@ -37,7 +37,8 @@ export interface Snapshot {
   time: TimeData | null
   /** Local Date.now() when `time` arrived, for interpolating between fast-minute pushes. */
   timeAt: number
-  throttles: Record<string, ThrottleStatus & { acquired: boolean }>
+  /** `unresponsive` is set when JMRI stops confirming this throttle's commands (see watchThrottle). */
+  throttles: Record<string, ThrottleStatus & { acquired: boolean; unresponsive?: boolean; requestedAt?: number }>
   lastError: (JmriError & { at: number }) | null
   /** Version of the JMRI Modern UI add-on, null if JMRI doesn't have it, undefined until known. */
   addon: string | null | undefined
@@ -101,6 +102,10 @@ export class JmriClient {
   private wanted = new Map<string, ThrottleRequest>()
   /** Beans we have sent a `get` for on the current socket (a `get` is what subscribes). */
   private watched = new Set<string>()
+  /** Last values JMRI confirmed for each throttle, and commands still waiting for that confirmation. */
+  private confirmed = new Map<string, Record<string, unknown>>()
+  private expecting = new Map<string, Map<string, number>>()
+  private expectTimer: number | undefined
   /** Requests awaiting a reply with their id. */
   private pending = new Map<number, { resolve: (m: Message) => void; reject: (e: Error) => void }>()
   readonly base: URL
@@ -179,6 +184,7 @@ export class JmriClient {
       this.watched.clear()
       for (const p of this.pending.values()) p.reject(new Error('Connection to JMRI lost'))
       this.pending.clear()
+      this.expecting.clear() // unconfirmed commands are lost with the socket, not ignored by JMRI
       // Server releases our throttles when the socket drops; mark them pending until re-acquired.
       const throttles = Object.fromEntries(
         Object.entries(this.snap.throttles).map(([k, t]) => [k, { ...t, acquired: false }]),
@@ -244,8 +250,12 @@ export class JmriClient {
         return
       case 'goodbye':
         return this.ws?.close()
-      case 'error':
-        return this.set({ lastError: { ...(data as unknown as JmriError), at: Date.now() } })
+      case 'error': {
+        const e = data as unknown as JmriError
+        // JMRI looks up a loco's own consist when it leaves one and reports a harmless 404 if there is none.
+        if (e.code === 404 && /consist .*\((L|S)\)/i.test(e.message ?? '')) return
+        return this.set({ lastError: { ...e, at: Date.now() } })
+      }
       case 'power':
         return this.set({ power: { ...this.snap.power, [String(data.name)]: data as unknown as Power } })
       case 'time':
@@ -351,9 +361,64 @@ export class JmriClient {
     } else {
       const { throttle: _alias, ...fields } = data
       void _alias
-      throttles[name] = { ...(throttles[name] ?? { name }), ...fields, acquired: true }
+      this.confirmed.set(name, { ...this.confirmed.get(name), ...fields })
+      const waiting = this.expecting.get(name)
+      if (waiting) for (const k of Object.keys(fields)) waiting.delete(k === 'speed' ? 'speed' : k)
+      // Any push proves JMRI is talking to this throttle again.
+      throttles[name] = { ...(throttles[name] ?? { name }), ...fields, acquired: true, unresponsive: false }
     }
     this.set({ throttles })
+  }
+
+  /**
+   * JMRI pushes every applied change back. If a command that changes something gets no confirmation,
+   * the throttle has stopped working server-side (a JMRI bug can leave a shared throttle dead after another
+   * client vanishes), and the operator needs to know, because its STOP won't work either.
+   */
+  private watchThrottle(name: string, fields: Record<string, unknown>) {
+    const t = this.snap.throttles[name]
+    if (!t?.acquired) return
+    const known = this.confirmed.get(name) ?? {}
+    const steps = t.speedSteps || 126
+    const waiting = this.expecting.get(name) ?? new Map<string, number>()
+    const due = Date.now() + 2500
+    for (const [k, v] of Object.entries(fields)) {
+      if (k === 'eStop') {
+        if (typeof known.speed !== 'number' || known.speed >= 0) waiting.set('speed', due)
+      } else if (k === 'speed') {
+        if (typeof known.speed !== 'number' || Math.abs(known.speed - Number(v)) > 1.5 / steps) waiting.set('speed', due)
+      } else if (k === 'forward' || /^F\d+$/.test(k)) {
+        if (known[k] !== v) waiting.set(k, due)
+      }
+    }
+    if (waiting.size === 0) return
+    this.expecting.set(name, waiting)
+    this.expectTimer ??= window.setInterval(() => this.checkExpectations(), 500)
+  }
+
+  private checkExpectations() {
+    const now = Date.now()
+    let changed = false
+    const throttles = { ...this.snap.throttles }
+    for (const [name, waiting] of this.expecting) {
+      if (!throttles[name]) {
+        this.expecting.delete(name)
+        continue
+      }
+      if ([...waiting.values()].some((due) => due < now)) {
+        waiting.clear()
+        if (!throttles[name].unresponsive) {
+          throttles[name] = { ...throttles[name], unresponsive: true }
+          changed = true
+        }
+      }
+      if (waiting.size === 0) this.expecting.delete(name)
+    }
+    if (this.expecting.size === 0) {
+      clearInterval(this.expectTimer)
+      this.expectTimer = undefined
+    }
+    if (changed) this.set({ throttles })
   }
 
   // ---------- commands ----------
@@ -433,15 +498,33 @@ export class JmriClient {
   }
 
   // ---- consists ----
+  //
+  // Consist changes go over REST, not the WebSocket. Any WebSocket message about a consist makes JMRI attach a
+  // listener for that address, and when the consist is later deleted that listener re-creates it empty. REST calls
+  // attach nothing and return once JMRI has applied the change (which includes writing CV19 on each loco, so they
+  // can take a few seconds); the consist list is then re-read.
 
-  async createConsist(address: number, isLongAddress: boolean, name: string, engines: ConsistEngine[]) {
-    await this.request({ type: 'consist', method: 'put', data: { address, isLongAddress, name, engines } })
+  private async consistRest(method: 'PUT' | 'POST' | 'DELETE', c: { address: number; isLongAddress: boolean }, data: Record<string, unknown> = {}) {
+    const path = method === 'PUT' ? 'json/consist' : `json/consist/${encodeURIComponent(consistKey(c))}`
+    const r = await fetch(new URL(path, this.base), {
+      method,
+      headers: { 'Content-Type': 'application/json' }, // JMRI 5.6 also needs a body on DELETE, or it fails with a 500
+      body: JSON.stringify({ address: c.address, isLongAddress: c.isLongAddress, ...data }),
+    })
+    const reply = await r.json().catch(() => null)
+    if (!r.ok || reply?.type === 'error') {
+      throw new Error(reply?.data?.message ?? `JMRI refused the consist change (HTTP ${r.status})`)
+    }
     this.send({ type: 'consist', method: 'list' })
   }
 
+  createConsist(address: number, isLongAddress: boolean, name: string, engines: ConsistEngine[]) {
+    return this.consistRest('PUT', { address, isLongAddress }, { name, engines })
+  }
+
   /** `engines` is the full membership; JMRI adds, removes and repositions to match. */
-  async setConsist(c: { address: number; isLongAddress: boolean }, fields: { name?: string; engines?: ConsistEngine[] }) {
-    await this.request({ type: 'consist', method: 'post', data: { address: c.address, isLongAddress: c.isLongAddress, ...fields } })
+  setConsist(c: { address: number; isLongAddress: boolean }, fields: { name?: string; engines?: ConsistEngine[] }) {
+    return this.consistRest('POST', c, fields)
   }
 
   /** JMRI applies direction only when a loco joins, so flip it by removing and re-adding. */
@@ -453,18 +536,11 @@ export class JmriClient {
     await this.setConsist(c, { engines: c.engines.map((e) => (e.address === address ? { ...e, forward } : e)) })
   }
 
-  /** The WebSocket can't delete consists; JMRI's REST API can. JMRI 5.6 needs a JSON body here, or it fails with a 500. */
   async deleteConsist(c: { address: number; isLongAddress: boolean }) {
-    const r = await fetch(new URL(`json/consist/${encodeURIComponent(consistKey(c))}`, this.base), {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: '{}',
-    })
-    if (!r.ok) throw new Error(`JMRI refused to delete the consist (HTTP ${r.status})`)
+    await this.consistRest('DELETE', c)
     const consists = { ...this.snap.consists }
     delete consists[consistKey(c)]
     this.set({ consists })
-    this.send({ type: 'consist', method: 'list' })
   }
 
   setLogixEnabled(name: string, enabled: boolean) {
@@ -506,13 +582,14 @@ export class JmriClient {
     this.set({
       throttles: {
         ...this.snap.throttles,
-        [req.name]: { name: req.name, address: req.address, rosterEntry: req.rosterEntry, acquired: false },
+        [req.name]: { name: req.name, address: req.address, rosterEntry: req.rosterEntry, acquired: false, requestedAt: Date.now() },
       },
     })
     this.send({ type: 'throttle', data: req })
   }
 
   throttle(name: string, fields: Record<string, unknown>) {
+    if (this.ws?.readyState === WebSocket.OPEN) this.watchThrottle(name, fields)
     // Optimistic local update; the server pushes changes back as they're applied.
     const t = this.snap.throttles[name]
     if (t && !('eStop' in fields) && !('release' in fields)) {
@@ -521,7 +598,16 @@ export class JmriClient {
     this.send({ type: 'throttle', data: { name, ...fields } })
   }
 
+  /** Drop a throttle that JMRI stopped serving and ask for the same loco again under a new name. */
+  reacquireThrottle(name: string) {
+    const req = this.wanted.get(name)
+    this.releaseThrottle(name)
+    if (req) this.acquireThrottle({ ...req, name: `${name.replace(/~\d+$/, '')}~${Date.now() % 100000}` })
+  }
+
   releaseThrottle(name: string) {
+    this.confirmed.delete(name)
+    this.expecting.delete(name)
     this.wanted.delete(name)
     this.send({ type: 'throttle', data: { name, release: null } })
     const throttles = { ...this.snap.throttles }

@@ -124,9 +124,19 @@ function PanelView({ item }: { item: PanelListItem }) {
 
 function LayoutTrack({ layout, control }: { layout: LayoutModel; control: boolean }) {
   const client = useClient()
-  const blocks = useJmri((s) => s.beans.layoutBlock) as Record<string, { blockColor?: string; state?: number }>
+  const layoutBlocks = useJmri((s) => s.beans.layoutBlock) as Record<string, { blockColor?: string }>
+  const sensors = useJmri((s) => s.beans.sensor) as Record<string, { state?: number }>
   const turnouts = useJmri((s) => s.beans.turnout) as Record<string, { state?: number }>
-  const color = (block: string | null) => (block && blocks[block]?.blockColor ? javaColor(blocks[block].blockColor) : layout.colors.track)
+  // JMRI doesn't push layout block colour changes, so derive occupancy from the block's sensor, which it does push.
+  const color = (block: string | null) => {
+    if (!block) return layout.colors.track
+    const info = layout.blocks[block]
+    if (info?.occupancySensor) {
+      return sensors[info.occupancySensor]?.state === info.occupiedSense ? info.occupiedColor : info.trackColor
+    }
+    const pushed = layoutBlocks[block]?.blockColor
+    return pushed ? javaColor(pushed) : (info?.trackColor ?? layout.colors.track)
+  }
   const width = (mainline: boolean, block: string | null) =>
     block ? (mainline ? layout.trackWidth.mainBlock : layout.trackWidth.sideBlock) : mainline ? layout.trackWidth.main : layout.trackWidth.side
 

@@ -40,8 +40,10 @@ import jmri.server.json.JsonRequest;
 import jmri.web.server.WebServer;
 import org.apache.commons.lang3.mutable.MutableInt;
 
-/** Synchronous parts of the add-on: Logix/LogixNG and programmer status. */
+/** Synchronous parts of the add-on: Logix/LogixNG, signal aspects, train actions and programmer status. */
 public class ModernUiHttpService extends JsonHttpService {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ModernUiHttpService.class);
 
     public ModernUiHttpService(ObjectMapper mapper) {
         super(mapper);
@@ -125,32 +127,47 @@ public class ModernUiHttpService extends JsonHttpService {
     // ---- operations ----
 
     private ObjectNode trainAction(String name, JsonNode data, JsonRequest request) throws JsonException {
-        Train train = InstanceManager.getDefault(TrainManager.class).getTrainById(name);
+        TrainManager trainManager = InstanceManager.getDefault(TrainManager.class);
+        Train train = trainManager.getTrainById(name);
         if (train == null) {
             throw new JsonException(404, "No train with id " + name, request.id);
         }
         String action = data.path("action").asText("");
-        boolean ok;
-        switch (action) {
-            case "build":
-                ok = train.build();
-                break;
-            case "reset":
-                ok = train.reset();
-                break;
-            case "move":
-                if (!train.isBuilt()) {
-                    throw new JsonException(428, "Train " + train.getName() + " is not built", request.id);
+        if (!java.util.Arrays.asList("build", "reset", "move", "terminate").contains(action)) {
+            throw new JsonException(400, "action must be build, reset, move or terminate", request.id);
+        }
+        if ("move".equals(action) && !train.isBuilt()) {
+            throw new JsonException(428, "Train " + train.getName() + " is not built", request.id);
+        }
+        boolean ok = true;
+        // JMRI reports build warnings and failures in modal dialogs. From a web request those would block
+        // until someone clicks OK at the JMRI computer (or fail outright when JMRI has no screen), so turn
+        // them off while we act and restore the user's setting afterwards.
+        synchronized (trainManager) {
+            boolean messages = trainManager.isBuildMessagesEnabled();
+            trainManager.setBuildMessagesEnabled(false);
+            try {
+                switch (action) {
+                    case "build":
+                        ok = train.build();
+                        break;
+                    case "reset":
+                        ok = train.reset();
+                        break;
+                    case "move":
+                        train.move();
+                        break;
+                    default:
+                        train.terminate();
+                        break;
                 }
-                train.move();
-                ok = true;
-                break;
-            case "terminate":
-                train.terminate();
-                ok = true;
-                break;
-            default:
-                throw new JsonException(400, "action must be build, reset, move or terminate", request.id);
+            } catch (java.awt.HeadlessException e) {
+                // Some other prompt; the train's own state below still tells the client what happened.
+                log.debug("Train {} {} wanted to show a dialog", train.getName(), action, e);
+                ok = !"build".equals(action) || train.isBuilt();
+            } finally {
+                trainManager.setBuildMessagesEnabled(messages);
+            }
         }
         ObjectNode r = mapper.createObjectNode();
         r.put("name", name);

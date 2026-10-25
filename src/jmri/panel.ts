@@ -77,7 +77,18 @@ export interface TrackSegment {
   bezier?: Point[]
 }
 
+export interface LayoutBlockInfo {
+  name: string
+  occupancySensor: string | null
+  /** Sensor state that means occupied (ACTIVE=2 normally). */
+  occupiedSense: number
+  trackColor: string
+  occupiedColor: string
+}
+
 export interface LayoutModel {
+  /** Keyed by layout block system name, as referenced by segments and turnouts. */
+  blocks: Record<string, LayoutBlockInfo>
   trackWidth: { main: number; side: number; mainBlock: number; sideBlock: number }
   colors: { background: string; track: string; occupied: string; text: string; circle: string; circleThrown: string }
   turnoutCircles: boolean
@@ -185,6 +196,7 @@ export function parsePanel(xml: string): PanelModel {
   const pointByKey = new Map<string, Point>()
   const turnouts: LayoutTurnout[] = []
   const rawSegments: Element[] = []
+  const blocks: Record<string, LayoutBlockInfo> = {}
 
   for (const el of root.children) {
     const base = { x: num(el, 'x'), y: num(el, 'y'), level: num(el, 'level', 1) }
@@ -324,6 +336,17 @@ export function parsePanel(xml: string): PanelModel {
       case 'tracksegment':
         rawSegments.push(el)
         break
+      case 'layoutblock': {
+        const name = el.getAttribute('systemName') ?? ''
+        blocks[name] = {
+          name,
+          occupancySensor: el.getAttribute('occupancysensor') || null,
+          occupiedSense: num(el, 'occupiedsense', 2),
+          trackColor: javaColor(el.getAttribute('trackcolor'), javaColor(root.getAttribute('defaulttrackcolor'))),
+          occupiedColor: javaColor(el.getAttribute('occupiedcolor'), javaColor(root.getAttribute('defaultoccupiedtrackcolor'), '#ff0000')),
+        }
+        break
+      }
     }
   }
 
@@ -351,6 +374,7 @@ export function parsePanel(xml: string): PanelModel {
       segments.push(seg)
     }
     model.layout = {
+      blocks,
       trackWidth: {
         main: num(root, 'mainlinetrackwidth', 2),
         side: num(root, 'sidelinetrackwidth', 1),
