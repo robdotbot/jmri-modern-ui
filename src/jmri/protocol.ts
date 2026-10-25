@@ -130,7 +130,223 @@ export interface ThrottleStatus {
 }
 
 /** Bean types the UI lists and watches. */
-export const BEAN_TYPES = ['turnout', 'sensor', 'light', 'route', 'block', 'memory'] as const
+export const BEAN_TYPES = [
+  'turnout',
+  'sensor',
+  'light',
+  'route',
+  'block',
+  'memory',
+  'signalMast',
+  'signalHead',
+  'layoutBlock',
+] as const
 export type BeanType = (typeof BEAN_TYPES)[number]
 
+export interface SignalMastData extends Omit<Bean, 'state'> {
+  aspect: string
+  lit: boolean
+  held: boolean
+  state: string
+}
+
+export interface SignalHeadData extends Bean {
+  appearance: number
+  appearanceName: string
+  lit: boolean
+  held: boolean
+  state: number
+}
+
+/** Signal head appearances (JSON.java / SignalHead.java). */
+export const HEAD = {
+  DARK: 0x00,
+  RED: 0x01,
+  FLASHRED: 0x02,
+  YELLOW: 0x04,
+  FLASHYELLOW: 0x08,
+  GREEN: 0x10,
+  FLASHGREEN: 0x20,
+  LUNAR: 0x40,
+  FLASHLUNAR: 0x80,
+  HELD: 0x100,
+} as const
+
+export interface LayoutBlockData extends Bean {
+  state: number
+  blockColor: string
+  trackColor: string
+  occupiedColor: string
+  extraColor: string
+  useExtraColor: boolean
+  occupancySensor: string | null
+  block: string | null
+}
+
+// ---- operations (java/src/jmri/server/json/operations) ----
+
+export const OPS_TYPES = ['train', 'location', 'car', 'engine'] as const
+export type OpsType = (typeof OPS_TYPES)[number]
+
+export interface OpsPlace {
+  name: string
+  userName: string
+  route?: string | null
+  track?: { name: string; userName: string } | null
+}
+
+export interface RouteStop {
+  name: string
+  userName: string
+  trainDirection: string
+  comment: string
+  sequenceId: number
+  expectedArrivalTime: string
+  expectedDepartureTime: string
+  location: { name: string; userName: string }
+}
+
+export interface TrainData {
+  name: string
+  userName: string
+  iconName: string
+  departureTime: string
+  description: string
+  comment: string
+  route: string
+  routeId: string
+  locations: RouteStop[]
+  engines: RollingStockData[]
+  cars: RollingStockData[]
+  trainDepartsName: string
+  trainTerminatesName: string
+  location: string
+  locationId: string
+  status: string
+  statusCode: number
+  length: number
+  weight: number
+  leadEngine: string | null
+  caboose: string | null
+}
+
+/** Train.statusCode values (operations/trains/Train.java). */
+export const TRAIN_STATUS = {
+  RESET: 0,
+  BUILDING: 0x01,
+  BUILD_FAILED: 0x02,
+  BUILT: 0x10,
+  PARTIAL_BUILT: 0x14,
+  EN_ROUTE: 0x18,
+  TERMINATED: 0x80,
+} as const
+
+export interface TrackData {
+  name: string
+  userName: string
+  comment: string
+  length: number
+  type: string
+  carType: string[]
+}
+
+export interface LocationData {
+  name: string
+  userName: string
+  length: number
+  comment: string
+  carType: string[]
+  track: TrackData[]
+}
+
+export interface RollingStockData {
+  name: string
+  number: string
+  road: string
+  carType: string
+  length: number
+  color: string
+  owner: string
+  built: string
+  comment: string
+  outOfService: boolean
+  locationUnknown: boolean
+  location: OpsPlace | null
+  destination: OpsPlace | null
+  trainId: string | null
+  trainName: string | null
+  weightTons: string
+  // cars
+  load?: string
+  kernel?: string | null
+  hazardous?: boolean
+  caboose?: boolean
+  passenger?: boolean
+  fred?: boolean
+  status?: string
+  // engines
+  model?: string
+  hp?: string
+  consist?: string | null
+}
+
+export interface ConsistEngine {
+  address: number
+  isLongAddress: boolean
+  forward: boolean
+  position: number
+}
+
+export interface ConsistData {
+  address: number
+  isLongAddress: boolean
+  type: number
+  engines: ConsistEngine[]
+  name: string
+  sizeLimit: number
+}
+
+export const consistKey = (c: { address: number; isLongAddress: boolean }) =>
+  `${c.address}(${c.isLongAddress ? 'L' : 'S'})`
+
 export const displayName = (b: { name: string; userName?: string | null }) => b.userName || b.name
+
+// ---- types served by the JMRI Modern UI add-on (addon/) ----
+
+export interface ConditionalData {
+  name: string
+  userName: string | null
+  comment: string | null
+  state: 'true' | 'false' | 'unknown'
+  logicType: string
+  antecedent: string
+  triggerOnChange: boolean
+  variables: string[]
+  actions: string[]
+}
+
+export interface LogixData {
+  name: string
+  userName: string | null
+  comment: string | null
+  enabled: boolean
+  conditionals: ConditionalData[]
+}
+
+export interface ConditionalNGData {
+  name: string
+  userName: string | null
+  comment: string | null
+  enabled: boolean
+  /** JMRI's own text rendering of the action/expression tree. */
+  tree: string
+}
+
+export interface LogixNGData {
+  name: string
+  userName: string | null
+  comment: string | null
+  enabled: boolean
+  active: boolean
+  conditionalNGs: ConditionalNGData[]
+}

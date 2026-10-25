@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import { IconLeft, IconPlus, IconRight, IconRoster, IconSearch, IconX } from '../icons.tsx'
 import type { ThrottleRequest } from '../jmri/client.ts'
-import type { FunctionKey, RosterEntry, ThrottleStatus } from '../jmri/protocol.ts'
+import { OFF, type FunctionKey, type RosterEntry, type ThrottleStatus } from '../jmri/protocol.ts'
 import { KEYS, save, useClient, useJmri, useStored } from '../state.tsx'
 
 type SpeedUnit = 'pct' | 'steps'
@@ -175,11 +175,22 @@ function useRateLimited(fn: (v: number) => void, ms = 80) {
   }
 }
 
-function ThrottleCard({ t }: { t: ThrottleStatus & { acquired: boolean } }) {
+function useNow(active: boolean) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (!active) return
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [active])
+  return now
+}
+
+function ThrottleCard({ t }: { t: ThrottleStatus & { acquired: boolean; unresponsive?: boolean; requestedAt?: number } }) {
   const client = useClient()
   const roster = useJmri((s) => s.roster)
   const entry: RosterEntry | undefined = t.rosterEntry ? roster[t.rosterEntry] : undefined
   const [unit, setUnit] = useStored<SpeedUnit>(KEYS.speedUnit, 'pct')
+  const now = useNow(!t.acquired)
   const steps = t.speedSteps || 126
   const speed = Math.max(0, t.speed ?? 0) // -1 means e-stopped
   const estopped = (t.speed ?? 0) < 0
@@ -256,6 +267,36 @@ function ThrottleCard({ t }: { t: ThrottleStatus & { acquired: boolean } }) {
           <IconX />
         </button>
       </div>
+
+      {!t.acquired && t.requestedAt && now - t.requestedAt > 6000 && (
+        <div className="banner" role="status">
+          JMRI hasn't handed over this loco yet. If it stays like this, JMRI may be stuck on it: turn track power off
+          if the loco is moving, and restart JMRI.
+        </div>
+      )}
+
+      {t.unresponsive && (
+        <div className="banner danger" role="alert" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+          <span>
+            JMRI stopped confirming this throttle's commands, so it may not be controlling the loco, and its Stop may not
+            work either. This can happen when another device sharing this loco drops off the network.
+          </span>
+          <div className="row-wrap">
+            <button className="btn danger" onClick={() => client.setPower(OFF)}>
+              Turn track power off
+            </button>
+            <button
+              className="btn"
+              onClick={() => {
+                client.reacquireThrottle(t.name)
+                save(KEYS.throttles, client.heldThrottles())
+              }}
+            >
+              Get a fresh throttle
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="speed-wrap">
         <div className="dial">

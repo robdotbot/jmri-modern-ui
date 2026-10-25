@@ -83,6 +83,50 @@ await page.locator('.throttle', { hasText: 'UP 844' }).waitFor({ timeout: 5000 }
 await page.locator('.throttle .pill.warn').waitFor({ state: 'detached', timeout: 5000 })
 check(true, 'throttle re-acquired after reload')
 
+// A throttle whose commands JMRI stops confirming must be flagged: a JMRI bug can leave a shared throttle
+// dead after another client vanishes, and then its Stop doesn't work. Simulate that by dropping JMRI's
+// throttle pushes to this page.
+{
+  const p2 = await ctx.newPage()
+  let drop = false
+  await p2.routeWebSocket(/\/json\/$/, (ws) => {
+    const server = ws.connectToServer()
+    server.onMessage((m) => {
+      if (!(drop && /"type":"throttle"/.test(m))) ws.send(m)
+    })
+    ws.onMessage((m) => server.send(m))
+  })
+  await p2.goto(APP + '#/throttles')
+  await p2.getByText('Connected').waitFor()
+  await p2.getByRole('button', { name: 'Add throttle' }).first().click()
+  await p2.getByLabel('Or a DCC address').fill('21')
+  await p2.getByRole('button', { name: 'Acquire' }).click()
+  const card = p2.locator('.throttle', { hasText: 'Address 21' })
+  await card.locator('.pill.warn').waitFor({ state: 'detached', timeout: 8000 })
+  await card.getByRole('button', { name: '25%' }).click()
+  await sleep(3500)
+  check((await card.getByRole('alert').count()) === 0, 'no warning while JMRI confirms commands')
+  drop = true
+  await card.getByRole('button', { name: '50%' }).click()
+  check(await card.getByRole('alert').waitFor({ timeout: 5000 }).then(() => true, () => false), 'throttle flagged when JMRI stops confirming its commands')
+  await card.getByRole('button', { name: 'Turn track power off' }).click()
+  check(await (async () => { for (let i = 0; i < 20; i++) { if ((await rest('power'))[0].data.state === 4) return true; await sleep(150) } return false })(), 'warning offers track power off, and it works')
+  // JMRI still silent: the replacement can't be acquired either, and the card must say so.
+  await card.getByRole('button', { name: 'Get a fresh throttle' }).click()
+  const waiting = p2.locator('.throttle', { hasText: 'Address 21' })
+  check(await waiting.getByText(/JMRI hasn't handed over this loco yet/).waitFor({ timeout: 9000 }).then(() => true, () => false), 'stalled acquisition explained after a few seconds')
+  await waiting.getByRole('button', { name: /Release/ }).click()
+  drop = false
+  await p2.getByRole('button', { name: 'Add throttle' }).first().click()
+  await p2.getByLabel('Or a DCC address').fill('21')
+  await p2.getByRole('button', { name: 'Acquire' }).click()
+  const fresh = p2.locator('.throttle', { hasText: 'Address 21' })
+  await fresh.locator('.pill.warn').waitFor({ state: 'detached', timeout: 8000 })
+  check((await fresh.getByRole('alert').count()) === 0 && (await fresh.getByText(/hasn't handed over/).count()) === 0, 'loco acquired normally once JMRI answers again')
+  await fresh.getByRole('button', { name: /Release/ }).click()
+  await p2.close()
+}
+
 // Turnouts
 await page.getByRole('button', { name: /Turnouts/ }).click()
 const before = (await rest('turnout/IT3')).data.state
@@ -135,7 +179,7 @@ await page.getByRole('button', { name: /Throttles/ }).click(); await sleep(300)
 await page.screenshot({ path: (process.env.SHOTS_DIR ?? '.') + '/shot-mobile-dark.png' })
 await page.emulateMedia({ colorScheme: 'light' }); await sleep(200)
 await page.screenshot({ path: (process.env.SHOTS_DIR ?? '.') + '/shot-mobile-light.png' })
-for (const r of ['throttles','roster','turnouts','memories','settings']) {
+for (const r of ['throttles','roster','turnouts','memories','settings','programming','logic','signals','consists','operations','panels']) {
   await page.evaluate((r) => location.hash = '#/' + r, r); await sleep(250)
   const w = await page.evaluate(() => Math.max(document.documentElement.scrollWidth, document.querySelector('.main').scrollWidth))
   check(w <= 390, `no horizontal overflow on phone: ${r} (${w}px)`)
