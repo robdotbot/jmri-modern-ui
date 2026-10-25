@@ -7,19 +7,14 @@ import static org.jmri.modernui.ModernUiServiceFactory.LOGIXNG;
 import static org.jmri.modernui.ModernUiServiceFactory.PROGRAMMER;
 import static org.jmri.modernui.ModernUiServiceFactory.ROSTER_CVS;
 import static org.jmri.modernui.ModernUiServiceFactory.SIGNAL_ASPECTS;
+import static org.jmri.modernui.ModernUiServiceFactory.STORE_CONFIG;
 import static org.jmri.modernui.ModernUiServiceFactory.TRAIN_ACTION;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.Locale;
 import jmri.AddressedProgrammerManager;
-import jmri.Conditional;
-import jmri.ConditionalAction;
-import jmri.ConditionalVariable;
 import jmri.GlobalProgrammerManager;
 import jmri.InstanceManager;
 import jmri.Logix;
@@ -40,7 +35,6 @@ import jmri.server.json.JsonException;
 import jmri.server.json.JsonHttpService;
 import jmri.server.json.JsonRequest;
 import jmri.web.server.WebServer;
-import org.apache.commons.lang3.mutable.MutableInt;
 
 /** Synchronous parts of the add-on: Logix/LogixNG, signal aspects, train actions and programmer status. */
 public class ModernUiHttpService extends JsonHttpService {
@@ -61,9 +55,11 @@ public class ModernUiHttpService extends JsonHttpService {
             case PROGRAMMER:
                 return message(PROGRAMMER, programmerStatus(), request.id);
             case LOGIX:
-                return message(LOGIX, logix(findLogix(name, request)), request.id);
+                return message(LOGIX, Logic.logix(mapper, Logic.findLogix(name, request.id)), request.id);
             case LOGIXNG:
-                return message(LOGIXNG, logixNG(findLogixNG(name, request)), request.id);
+                return message(LOGIXNG, Logic.logixNG(mapper, Logic.findLogixNG(name, request.id)), request.id);
+            case STORE_CONFIG:
+                return message(STORE_CONFIG, StoreConfig.get(mapper), request.id);
             case SIGNAL_ASPECTS:
                 return message(SIGNAL_ASPECTS, signalAspects(name, data.path("imageset").asText("default"), request), request.id);
             case DECODER_DEFINITION:
@@ -191,12 +187,12 @@ public class ModernUiHttpService extends JsonHttpService {
         switch (type) {
             case LOGIX:
                 for (Logix l : InstanceManager.getDefault(LogixManager.class).getNamedBeanSet()) {
-                    array.add(message(LOGIX, logix(l), 0));
+                    array.add(message(LOGIX, Logic.logix(mapper, l), 0));
                 }
                 break;
             case LOGIXNG:
                 for (LogixNG l : InstanceManager.getDefault(LogixNG_Manager.class).getNamedBeanSet()) {
-                    array.add(message(LOGIXNG, logixNG(l), 0));
+                    array.add(message(LOGIXNG, Logic.logixNG(mapper, l), 0));
                 }
                 break;
             default:
@@ -208,31 +204,24 @@ public class ModernUiHttpService extends JsonHttpService {
     @Override
     public JsonNode doPost(String type, String name, JsonNode data, JsonRequest request) throws JsonException {
         switch (type) {
-            case LOGIX: {
-                Logix l = findLogix(name, request);
-                if (data.has("enabled")) {
-                    l.setEnabled(data.path("enabled").asBoolean());
-                }
-                return message(LOGIX, logix(l), request.id);
-            }
+            case LOGIX:
+                return message(LOGIX, Logic.editLogix(mapper, name, data, request.id), request.id);
             case LOGIXNG: {
-                // name is either a LogixNG or one of its ConditionalNGs
-                LogixNG l = InstanceManager.getDefault(LogixNG_Manager.class).getNamedBean(name);
-                if (l != null) {
+                // Without an op, name may also be a ConditionalNG to enable, disable or run.
+                if (data.path("op").asText("").isEmpty() && InstanceManager.getDefault(LogixNG_Manager.class).getNamedBean(name) == null) {
+                    ConditionalNG c = Logic.findConditionalNG(name, request.id);
                     if (data.has("enabled")) {
-                        l.setEnabled(data.path("enabled").asBoolean());
+                        c.setEnabled(data.path("enabled").asBoolean());
                     }
-                    return message(LOGIXNG, logixNG(l), request.id);
+                    if (data.path("execute").asBoolean(false)) {
+                        c.execute();
+                    }
+                    return message(LOGIXNG, Logic.logixNG(mapper, c.getLogixNG()), request.id);
                 }
-                ConditionalNG c = findConditionalNG(name, request);
-                if (data.has("enabled")) {
-                    c.setEnabled(data.path("enabled").asBoolean());
-                }
-                if (data.path("execute").asBoolean(false)) {
-                    c.execute();
-                }
-                return message(LOGIXNG, logixNG(c.getLogixNG()), request.id);
+                return message(LOGIXNG, Logic.editLogixNG(mapper, name, data, request.id), request.id);
             }
+            case STORE_CONFIG:
+                return message(STORE_CONFIG, StoreConfig.store(mapper, data, request.id), request.id);
             case TRAIN_ACTION:
                 return message(TRAIN_ACTION, trainAction(name, data, request), request.id);
             case ROSTER_CVS:
@@ -270,105 +259,4 @@ public class ModernUiHttpService extends JsonHttpService {
         return data;
     }
 
-    // ---- Logix ----
-
-    private Logix findLogix(String name, JsonRequest request) throws JsonException {
-        Logix l = InstanceManager.getDefault(LogixManager.class).getNamedBean(name);
-        if (l == null) {
-            throw new JsonException(404, "No Logix " + name, request.id);
-        }
-        return l;
-    }
-
-    private ObjectNode logix(Logix l) {
-        ObjectNode data = bean(l.getSystemName(), l.getUserName(), l.getComment());
-        data.put("enabled", l.getEnabled());
-        ArrayNode cs = data.putArray("conditionals");
-        for (int i = 0; i < l.getNumConditionals(); i++) {
-            Conditional c = l.getConditional(l.getConditionalByNumberOrder(i));
-            if (c == null) {
-                continue;
-            }
-            ObjectNode cn = bean(c.getSystemName(), c.getUserName(), c.getComment());
-            int state = c.getState();
-            cn.put("state", state == Conditional.TRUE ? "true" : state == Conditional.FALSE ? "false" : "unknown");
-            cn.put("logicType", String.valueOf(c.getLogicType()));
-            cn.put("antecedent", c.getAntecedentExpression());
-            cn.put("triggerOnChange", c.getTriggerOnChange());
-            ArrayNode vars = cn.putArray("variables");
-            for (ConditionalVariable v : c.getCopyOfStateVariables()) {
-                vars.add(describe(v::toString));
-            }
-            ArrayNode actions = cn.putArray("actions");
-            for (ConditionalAction a : c.getCopyOfActions()) {
-                actions.add(describe(() -> a.description(c.getTriggerOnChange())));
-            }
-            cs.add(cn);
-        }
-        return data;
-    }
-
-    // ---- LogixNG ----
-
-    private LogixNG findLogixNG(String name, JsonRequest request) throws JsonException {
-        LogixNG l = InstanceManager.getDefault(LogixNG_Manager.class).getNamedBean(name);
-        if (l == null) {
-            throw new JsonException(404, "No LogixNG " + name, request.id);
-        }
-        return l;
-    }
-
-    private ConditionalNG findConditionalNG(String name, JsonRequest request) throws JsonException {
-        for (LogixNG l : InstanceManager.getDefault(LogixNG_Manager.class).getNamedBeanSet()) {
-            for (int i = 0; i < l.getNumConditionalNGs(); i++) {
-                ConditionalNG c = l.getConditionalNG(i);
-                if (c != null && (name.equals(c.getSystemName()) || name.equals(c.getUserName()))) {
-                    return c;
-                }
-            }
-        }
-        throw new JsonException(404, "No LogixNG or ConditionalNG " + name, request.id);
-    }
-
-    private ObjectNode logixNG(LogixNG l) {
-        ObjectNode data = bean(l.getSystemName(), l.getUserName(), l.getComment());
-        data.put("enabled", l.isEnabled());
-        data.put("active", l.isActive());
-        ArrayNode cs = data.putArray("conditionalNGs");
-        for (int i = 0; i < l.getNumConditionalNGs(); i++) {
-            ConditionalNG c = l.getConditionalNG(i);
-            if (c == null) {
-                continue;
-            }
-            ObjectNode cn = bean(c.getSystemName(), c.getUserName(), c.getComment());
-            cn.put("enabled", c.isEnabled());
-            StringWriter tree = new StringWriter();
-            try (PrintWriter w = new PrintWriter(tree)) {
-                c.printTree(Locale.getDefault(), w, "    ", new MutableInt(0));
-            } catch (RuntimeException e) {
-                tree.write("(could not describe: " + e.getMessage() + ")");
-            }
-            cn.put("tree", tree.toString());
-            cs.add(cn);
-        }
-        return data;
-    }
-
-    /** JMRI's describers throw on half-configured items (e.g. a missing target); don't let one break the list. */
-    private static String describe(java.util.function.Supplier<String> describer) {
-        try {
-            String s = describer.get();
-            return s != null ? s : "(no description)";
-        } catch (RuntimeException e) {
-            return "(incomplete: " + e.getClass().getSimpleName() + ")";
-        }
-    }
-
-    private ObjectNode bean(String name, String userName, String comment) {
-        ObjectNode data = mapper.createObjectNode();
-        data.put("name", name);
-        data.put("userName", userName);
-        data.put("comment", comment);
-        return data;
-    }
 }

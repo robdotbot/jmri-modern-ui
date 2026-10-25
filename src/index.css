@@ -1709,3 +1709,134 @@ select.input {
     grid-template-columns: repeat(4, 52px);
   }
 }
+
+/* ---------- logic editing ---------- */
+
+.store-config {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.store-pop {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 20;
+  width: min(380px, 90vw);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: var(--shadow);
+}
+
+.danger-text {
+  color: var(--danger);
+}
+
+.small-btn {
+  padding: 2px 8px;
+  font-size: 12px;
+  min-height: 0;
+}
+
+.logic-tools {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+.cond-edit {
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  border-top: 0;
+}
+
+.edit-row {
+  gap: 6px;
+  align-items: center;
+}
+
+.edit-row .input {
+  width: auto;
+  min-width: 0;
+  max-width: 230px;
+}
+
+.field-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ng-socket {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 3px 0;
+}
+
+.ng-socket-name {
+  font: 12px/1.9 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 52px;
+}
+
+.ng-socket-name.expression {
+  color: var(--accent);
+}
+
+.ng-add {
+  width: auto;
+  font-size: 13px;
+  padding: 4px 8px;
+}
+
+.ng-node {
+  flex: 1;
+  min-width: 0;
+  border-left: 2px solid var(--border);
+  padding-left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ng-node.disabled > .ng-node-head .ng-desc {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.ng-node-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.ng-desc {
+  font-size: 14px;
+}
+
+.ng-fields {
+  gap: 8px;
+}
+
+.ng-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ng-field .input {
+  width: auto;
+  min-width: 140px;
+  max-width: 240px;
+}
+
+.ng-children {
+  display: flex;
+  flex-direction: column;
+}

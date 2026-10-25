@@ -48,6 +48,8 @@ export interface Snapshot {
   ops: Record<OpsType, Record<string, Record<string, unknown>>>
   /** Keyed by consistKey(). */
   consists: Record<string, ConsistData>
+  /** Logic or panels were changed from here and JMRI hasn't stored its configuration since. */
+  unstored: boolean
 }
 
 const emptyBeans = () =>
@@ -131,6 +133,7 @@ export class JmriClient {
       logixng: {},
       ops: Object.fromEntries(OPS_TYPES.map((t) => [t, {}])) as Snapshot['ops'],
       consists: {},
+      unstored: false,
     }
   }
 
@@ -273,9 +276,12 @@ export class JmriClient {
       case 'consist':
         return this.set({ consists: { ...this.snap.consists, [consistKey(data as unknown as ConsistData)]: data as unknown as ConsistData } })
       case 'logix':
-        return this.set({ logix: { ...this.snap.logix, [String(data.name)]: data as unknown as LogixData } })
-      case 'logixng':
-        return this.set({ logixng: { ...this.snap.logixng, [String(data.name)]: data as unknown as LogixNGData } })
+      case 'logixng': {
+        const all = { ...this.snap[msg.type] } as Record<string, unknown>
+        if (data.deleted) delete all[String(data.name)]
+        else all[String(data.name)] = data
+        return this.set({ [msg.type]: all })
+      }
       default:
         if ((BEAN_TYPES as readonly string[]).includes(msg.type)) this.putBeans(msg.type as BeanType, [data], true)
         else if ((OPS_TYPES as readonly string[]).includes(msg.type)) this.putOps(msg.type as OpsType, [data], true)
@@ -543,6 +549,29 @@ export class JmriClient {
     const consists = { ...this.snap.consists }
     delete consists[consistKey(c)]
     this.set({ consists })
+  }
+
+  /** A Logix or LogixNG edit (see the add-on's Logic.java); resolves with the changed item. */
+  async editLogic<T>(type: 'logix' | 'logixng', name: string, edit: Record<string, unknown>): Promise<T> {
+    const m = await this.request<T>({ type, method: 'post', data: { name, ...edit } })
+    this.set({ unstored: true })
+    return m.data!
+  }
+
+  /** Files JMRI loaded its configuration from, which it can store back to. */
+  async storeTargets(): Promise<{ file: string; name: string; exists: boolean }[]> {
+    return (await this.request<{ files: { file: string; name: string; exists: boolean }[] }>({ type: 'storeConfig' })).data!.files
+  }
+
+  /** PanelPro's Store: write all tables and panels to `file`. */
+  async storeConfig(file: string) {
+    await this.request({ type: 'storeConfig', method: 'post', data: { file } }, 60000)
+    this.set({ unstored: false })
+  }
+
+  /** For edits made elsewhere in the client (panels). */
+  markUnstored() {
+    this.set({ unstored: true })
   }
 
   setLogixEnabled(name: string, enabled: boolean) {

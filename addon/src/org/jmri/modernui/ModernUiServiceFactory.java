@@ -24,11 +24,15 @@ public class ModernUiServiceFactory implements JsonServiceFactory<ModernUiHttpSe
     public static final String DECODER_DEFINITION = "decoderDefinition";
     /** A roster entry's decoder and stored CV values: {@code get {name}}, {@code post {name, values, decoderFamily?, decoderModel?}}. */
     public static final String ROSTER_CVS = "rosterCvs";
-    public static final String VERSION = "1.2.0";
+    /** Store JMRI's configuration (tables and panels) to a file it loaded: {@code get}, {@code post {file}}. */
+    public static final String STORE_CONFIG = "storeConfig";
+    /** Panel editing: {@code post {name, op, ...}} (see PanelEditing). */
+    public static final String PANEL_EDIT = "panelEdit";
+    public static final String VERSION = "1.3.0";
 
     @Override
     public String[] getTypes(String version) {
-        return new String[]{PROGRAMMER, LOGIX, LOGIXNG, ADDON, SIGNAL_ASPECTS, TRAIN_ACTION, DECODER_DEFINITION, ROSTER_CVS};
+        return new String[]{PROGRAMMER, LOGIX, LOGIXNG, ADDON, SIGNAL_ASPECTS, TRAIN_ACTION, DECODER_DEFINITION, ROSTER_CVS, STORE_CONFIG};
     }
 
     @Override

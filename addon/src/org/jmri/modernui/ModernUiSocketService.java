@@ -74,7 +74,7 @@ public class ModernUiSocketService extends JsonSocketService<ModernUiHttpService
             }
             return;
         }
-        if ((LOGIX.equals(type) || LOGIXNG.equals(type)) && name.isEmpty()) {
+        if ((LOGIX.equals(type) || LOGIXNG.equals(type)) && name.isEmpty() && !"post".equals(request.method)) {
             onList(type, data, request);
             return;
         }
