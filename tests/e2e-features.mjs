@@ -161,12 +161,32 @@ check(true, 'manifest shows pick-ups')
 await page.getByRole('dialog', { name: 'Manifest BB' }).getByRole('button', { name: 'Close' }).click()
 await train.getByRole('button', { name: 'Terminate' }).click()
 check(await until(async () => (await rest('train/3')).data.statusCode === 0x80), 'train terminated')
-await page.getByRole('button', { name: /^cars \(/ }).click()
+await page.getByRole('button', { name: /^cars \(/i }).click()
 await page.getByPlaceholder(/Search cars/).fill('ATSF 10407')
 await page.getByRole('row', { name: /ATSF 10407/ }).getByRole('button', { name: 'Move' }).click()
 await page.getByLabel('Location', { exact: true }).selectOption({ label: 'Port Arthur' })
 await page.getByRole('button', { name: 'Save' }).click()
 check(await until(async () => (await rest('car/ATSF10407')).data.location?.userName === 'Port Arthur'), 'car ATSF 10407 moved to Port Arthur')
+
+// Switch lists: build train SL (id 11) and compare one stop's work with its manifest, read independently.
+if (![0x10, 0x14].includes((await rest('train/11')).data.statusCode)) {
+  await post('trainAction/11', { action: 'reset' })
+  await post('trainAction/11', { action: 'build' })
+}
+const slManifest = await (await fetch(`${BASE}/operations/manifest/11?format=json`)).json()
+const slStop = slManifest.locations.find((l, i) => i > 0 && l.cars.add.length + l.cars.remove.length > 0)
+const slCars = [...slStop.cars.add, ...slStop.cars.remove].map((c) => `${c.road} ${c.number}`)
+await page.getByRole('button', { name: 'Switch lists' }).click()
+await page.getByLabel('Location', { exact: true }).selectOption({ value: slStop.location.name })
+const visit = page.getByRole('region', { name: `Train SL at ${slStop.userName}` })
+await visit.getByRole('row').nth(1).waitFor()
+const visitText = await visit.innerText()
+check(
+  slCars.every((c) => visitText.includes(c)) && (await visit.getByRole('row').count()) === slCars.length + 1,
+  `switch list for ${slStop.userName} lists SL's ${slCars.length} car moves from its manifest`,
+)
+await post('trainAction/11', { action: 'reset' })
+check(await until(async () => (await page.getByRole('region', { name: 'Also scheduled' }).innerText()).includes('SL')), 'reset train SL moves to "Also scheduled"')
 
 // ---------- panels ----------
 await go('panels')

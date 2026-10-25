@@ -1462,3 +1462,40 @@ select.input {
     transition: none !important;
   }
 }
+
+/* ---------- switch lists ---------- */
+
+.cond.done {
+  opacity: 0.55;
+}
+
+.switch-list .table td,
+.switch-list .table th {
+  vertical-align: top;
+}
+
+@media print {
+  .topbar,
+  .sidenav,
+  .no-print,
+  .page-head,
+  .page > .segmented {
+    display: none !important;
+  }
+  .shell,
+  .main,
+  .page {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+    overflow: visible !important;
+  }
+  .switch-list {
+    border: 0;
+    box-shadow: none;
+  }
+  .switch-list .cond {
+    break-inside: avoid;
+  }
+}

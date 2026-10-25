@@ -259,6 +259,17 @@ export interface LocationData {
   track: TrackData[]
 }
 
+/** One stop of a built train's manifest (/operations/manifest/<train id>?format=json). */
+export interface ManifestStop {
+  name: string
+  userName: string
+  departureTime?: string
+  comment?: string
+  trainDirection?: string
+  engines: { add: RollingStockData[]; remove: RollingStockData[] }
+  cars: { add: RollingStockData[]; remove: RollingStockData[]; total: number; loads: number; empties: number }
+}
+
 export interface RollingStockData {
   name: string
   number: string
