@@ -50,6 +50,7 @@ export const KEYS = {
   throttles: 'jmri.throttles',
   speedUnit: 'jmri.speedUnit',
   showSystem: 'jmri.showSystem',
+  panel: 'jmri.panel',
 } as const
 
 export type Theme = 'system' | 'light' | 'dark'

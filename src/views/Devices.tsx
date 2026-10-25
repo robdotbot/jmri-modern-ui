@@ -9,7 +9,6 @@ import {
   ON,
   THROWN,
   displayName,
-  type BeanType,
 } from '../jmri/protocol.ts'
 import { KEYS, useClient, useJmri, useStored } from '../state.tsx'
 
@@ -20,11 +19,13 @@ interface Look {
   tone: Tone
 }
 
+export type DeviceType = 'turnout' | 'route' | 'sensor' | 'light' | 'block'
+
 /** JMRI creates these for its own bookkeeping (fast clock etc.); hidden unless "Show system objects" is on. */
 export const isSystemBean = (name: string) => /^I[SM](CLOCK|CURRENTTIME|RATEFACTOR)/.test(name)
 
 const TYPES: Record<
-  Exclude<BeanType, 'memory'>,
+  DeviceType,
   {
     icon: (state: number) => ReactNode
     look: (state: number) => Look
@@ -91,7 +92,7 @@ const TYPES: Record<
   },
 }
 
-export function DevicesPage({ type, title }: { type: Exclude<BeanType, 'memory'>; title: string }) {
+export function DevicesPage({ type, title }: { type: DeviceType; title: string }) {
   const client = useClient()
   const beans = useJmri((s) => s.beans[type])
   const [q, setQ] = useState('')

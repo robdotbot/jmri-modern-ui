@@ -1,0 +1,452 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<panel name="My Layout" paneltype="LayoutPanel" height="280" width="624" panelheight="280" panelwidth="624" showtooltips="yes" controlling="yes" xscale="1.0" yscale="1.0" mainlinetrackwidth="2" sidelinetrackwidth="1" mainlineblockwidth="4" sidelineblockwidth="2" turnoutcircles="yes" turnoutcirclesize="2" turnoutdrawunselectedleg="yes" backgroundcolor="lightGray" defaulttrackcolor="darkGray" defaultoccupiedtrackcolor="red" defaultalternativetrackcolor="white" defaulttextcolor="black" turnoutcirclecolor="black" turnoutcirclethrowncolor="black" turnoutfillcontrolcircles="no" mainBallastColor="black" mainBallastWidth="0" mainBlockLineDashPercentageX10="0" mainBlockLineWidth="4" mainRailColor="darkGray" mainRailCount="1" mainRailGap="0" mainRailWidth="2" mainTieColor="black" mainTieGap="0" mainTieLength="0" mainTieWidth="0" sideBallastColor="black" sideBallastWidth="0" sideBlockLineDashPercentageX10="0" sideBlockLineWidth="2" sideRailColor="darkGray" sideRailCount="1" sideRailGap="0" sideRailWidth="1" sideTieColor="black" sideTieGap="0" sideTieLength="0" sideTieWidth="0">
+  <positionablelabel x="280" y="20" level="4" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" text="Alpha" size="13" style="0" red="0" green="0" blue="0" hasBackground="no" justification="centre" class="jmri.jmrit.display.configurexml.PositionableLabelXml" />
+  <sensoricon sensor="S-Left-Approach" x="100" y="160" level="10" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" momentary="false" icon="yes" class="jmri.jmrit.display.configurexml.SensorIconXml" id="IS101">
+    <active url="/dist/resources/icons/smallschematics/tracksegments/circuit-occupied.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </active>
+    <inactive url="/dist/resources/icons/smallschematics/tracksegments/circuit-empty.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inactive>
+    <unknown url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </unknown>
+    <inconsistent url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inconsistent>
+    <iconmaps />
+  </sensoricon>
+  <sensoricon sensor="S-Left-TO" x="190" y="160" level="10" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" momentary="false" icon="yes" class="jmri.jmrit.display.configurexml.SensorIconXml" id="IS102">
+    <active url="/dist/resources/icons/smallschematics/tracksegments/circuit-occupied.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </active>
+    <inactive url="/dist/resources/icons/smallschematics/tracksegments/circuit-empty.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inactive>
+    <unknown url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </unknown>
+    <inconsistent url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inconsistent>
+    <iconmaps />
+  </sensoricon>
+  <sensoricon sensor="S-Main" x="290" y="160" level="10" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" momentary="false" icon="yes" class="jmri.jmrit.display.configurexml.SensorIconXml" id="IS103">
+    <active url="/dist/resources/icons/smallschematics/tracksegments/circuit-occupied.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </active>
+    <inactive url="/dist/resources/icons/smallschematics/tracksegments/circuit-empty.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inactive>
+    <unknown url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </unknown>
+    <inconsistent url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inconsistent>
+    <iconmaps />
+  </sensoricon>
+  <sensoricon sensor="S-Right-TO" x="400" y="160" level="10" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" momentary="false" icon="yes" class="jmri.jmrit.display.configurexml.SensorIconXml" id="IS105">
+    <active url="/dist/resources/icons/smallschematics/tracksegments/circuit-occupied.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </active>
+    <inactive url="/dist/resources/icons/smallschematics/tracksegments/circuit-empty.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inactive>
+    <unknown url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </unknown>
+    <inconsistent url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inconsistent>
+    <iconmaps />
+  </sensoricon>
+  <sensoricon sensor="S-Right-Approach" x="490" y="160" level="10" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" momentary="false" icon="yes" class="jmri.jmrit.display.configurexml.SensorIconXml" id="IS106">
+    <active url="/dist/resources/icons/smallschematics/tracksegments/circuit-occupied.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </active>
+    <inactive url="/dist/resources/icons/smallschematics/tracksegments/circuit-empty.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inactive>
+    <unknown url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </unknown>
+    <inconsistent url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inconsistent>
+    <iconmaps />
+  </sensoricon>
+  <sensoricon sensor="S-Side" x="290" y="60" level="10" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" momentary="false" icon="yes" class="jmri.jmrit.display.configurexml.SensorIconXml" id="IS104">
+    <active url="/dist/resources/icons/smallschematics/tracksegments/circuit-occupied.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </active>
+    <inactive url="/dist/resources/icons/smallschematics/tracksegments/circuit-empty.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inactive>
+    <unknown url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </unknown>
+    <inconsistent url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inconsistent>
+    <iconmaps />
+  </sensoricon>
+  <sensoricon sensor="Reset" x="10" y="10" level="10" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" momentary="true" icon="no" text="Reset" size="13" style="0" red="0" green="255" blue="0" hasBackground="yes" redBack="0" greenBack="0" blueBack="0" fixedWidth="50" fixedHeight="20" justification="centre" class="jmri.jmrit.display.configurexml.SensorIconXml" id="IS999">
+    <active url="/dist/resources/icons/smallschematics/tracksegments/circuit-occupied.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </active>
+    <inactive url="/dist/resources/icons/smallschematics/tracksegments/circuit-empty.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inactive>
+    <unknown url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </unknown>
+    <inconsistent url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inconsistent>
+    <iconmaps />
+    <activeText text="Reset" red="255" green="0" blue="0" redBack="0" greenBack="0" blueBack="0" />
+    <inactiveText text="Reset" red="0" green="255" blue="0" redBack="0" greenBack="0" blueBack="0" />
+    <unknownText text="Reset" red="0" green="0" blue="255" />
+    <inconsistentText text="Reset" red="0" green="0" blue="0" />
+  </sensoricon>
+  <signalmasticon signalmast="Left-EB" x="55" y="115" level="9" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" degrees="270" clickmode="0" litmode="false" scale="1.0" imageset="default" class="jmri.jmrit.display.configurexml.SignalMastIconXml" id="IF$vsm:basic:one-low($0001)">
+    <icons>
+      <Clear aspect="Clear" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-1-low/rule-287.gif" />
+      <Approach aspect="Approach" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-1-low/rule-290.gif" />
+      <Stop aspect="Stop" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-1-low/rule-292.gif" />
+      <Unlit aspect="Unlit" url="/resources/icons/smallschematics/searchlights/one-low-dark.gif" />
+      <Held aspect="Held" url="/resources/icons/smallschematics/searchlights/one-low-held.gif" />
+      <Dark aspect="Dark" url="/resources/icons/smallschematics/searchlights/one-low-dark.gif" />
+      <Unknown aspect="Unknown" url="/resources/icons/misc/X-red.gif" />
+    </icons>
+  </signalmasticon>
+  <signalmasticon signalmast="Left-TO-A" x="126" y="134" level="9" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" degrees="90" clickmode="0" litmode="false" scale="1.0" imageset="default" class="jmri.jmrit.display.configurexml.SignalMastIconXml" id="IF$vsm:basic:two-searchlight($0003)">
+    <icons>
+      <Clear aspect="Clear" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-2-high-abs/rule-281.gif" />
+      <Approach aspect="Approach" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-2-high-abs/rule-285.gif" />
+      <Stop aspect="Stop" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-2-high-abs/rule-292.gif" />
+      <DivergingClear aspect="Diverging Clear" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-2-high-abs/rule-283.gif" />
+      <DivergingApproach aspect="Diverging Approach" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-2-high-abs/rule-290.gif" />
+      <Unlit aspect="Unlit" url="/resources/icons/smallschematics/searchlights/two-high-dark.gif" />
+      <Held aspect="Held" url="/resources/icons/smallschematics/searchlights/two-high-held.gif" />
+      <Dark aspect="Dark" url="/resources/icons/smallschematics/searchlights/two-high-dark.gif" />
+      <Unknown aspect="Unknown" url="/resources/icons/misc/X-red.gif" />
+    </icons>
+  </signalmasticon>
+  <signalmasticon signalmast="Left-TO-B" x="235" y="115" level="9" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" degrees="270" clickmode="0" litmode="false" scale="1.0" imageset="default" class="jmri.jmrit.display.configurexml.SignalMastIconXml" id="IF$vsm:basic:one-searchlight($0005)">
+    <icons>
+      <Clear aspect="Clear" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-1-high-abs/rule-281.gif" />
+      <Approach aspect="Approach" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-1-high-abs/rule-285.gif" />
+      <Stop aspect="Stop" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-1-high-abs/rule-292.gif" />
+      <Unlit aspect="Unlit" url="/resources/icons/smallschematics/searchlights/one-high-dark.gif" />
+      <Held aspect="Held" url="/resources/icons/smallschematics/searchlights/one-high-held.gif" />
+      <Dark aspect="Dark" url="/resources/icons/smallschematics/searchlights/one-high-dark.gif" />
+      <Unknown aspect="Unknown" url="/resources/icons/misc/X-red.gif" />
+    </icons>
+  </signalmasticon>
+  <signalmasticon signalmast="Left-TO-C" x="235" y="85" level="9" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" degrees="270" clickmode="0" litmode="false" scale="1.0" imageset="default" class="jmri.jmrit.display.configurexml.SignalMastIconXml" id="IF$vsm:basic:one-searchlight($0006)">
+    <icons>
+      <Clear aspect="Clear" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-1-high-abs/rule-281.gif" />
+      <Approach aspect="Approach" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-1-high-abs/rule-285.gif" />
+      <Stop aspect="Stop" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-1-high-abs/rule-292.gif" />
+      <Unlit aspect="Unlit" url="/resources/icons/smallschematics/searchlights/one-high-dark.gif" />
+      <Held aspect="Held" url="/resources/icons/smallschematics/searchlights/one-high-held.gif" />
+      <Dark aspect="Dark" url="/resources/icons/smallschematics/searchlights/one-high-dark.gif" />
+      <Unknown aspect="Unknown" url="/resources/icons/misc/X-red.gif" />
+    </icons>
+  </signalmasticon>
+  <signalmasticon signalmast="Right-TO-A" x="435" y="115" level="9" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" degrees="270" clickmode="0" litmode="false" scale="1.0" imageset="default" class="jmri.jmrit.display.configurexml.SignalMastIconXml" id="IF$vsm:basic:two-searchlight($0004)">
+    <icons>
+      <Clear aspect="Clear" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-2-high-abs/rule-281.gif" />
+      <Approach aspect="Approach" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-2-high-abs/rule-285.gif" />
+      <Stop aspect="Stop" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-2-high-abs/rule-292.gif" />
+      <DivergingClear aspect="Diverging Clear" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-2-high-abs/rule-283.gif" />
+      <DivergingApproach aspect="Diverging Approach" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-2-high-abs/rule-290.gif" />
+      <Unlit aspect="Unlit" url="/resources/icons/smallschematics/searchlights/two-high-dark.gif" />
+      <Held aspect="Held" url="/resources/icons/smallschematics/searchlights/two-high-held.gif" />
+      <Dark aspect="Dark" url="/resources/icons/smallschematics/searchlights/two-high-dark.gif" />
+      <Unknown aspect="Unknown" url="/resources/icons/misc/X-red.gif" />
+    </icons>
+  </signalmasticon>
+  <signalmasticon signalmast="Right-TO-B" x="326" y="134" level="9" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" degrees="90" clickmode="0" litmode="false" scale="1.0" imageset="default" class="jmri.jmrit.display.configurexml.SignalMastIconXml" id="IF$vsm:basic:one-searchlight($0007)">
+    <icons>
+      <Clear aspect="Clear" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-1-high-abs/rule-281.gif" />
+      <Approach aspect="Approach" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-1-high-abs/rule-285.gif" />
+      <Stop aspect="Stop" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-1-high-abs/rule-292.gif" />
+      <Unlit aspect="Unlit" url="/resources/icons/smallschematics/searchlights/one-high-dark.gif" />
+      <Held aspect="Held" url="/resources/icons/smallschematics/searchlights/one-high-held.gif" />
+      <Dark aspect="Dark" url="/resources/icons/smallschematics/searchlights/one-high-dark.gif" />
+      <Unknown aspect="Unknown" url="/resources/icons/misc/X-red.gif" />
+    </icons>
+  </signalmasticon>
+  <signalmasticon signalmast="Right-TO-C" x="326" y="104" level="9" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" degrees="90" clickmode="0" litmode="false" scale="1.0" imageset="default" class="jmri.jmrit.display.configurexml.SignalMastIconXml" id="IF$vsm:basic:one-searchlight($0008)">
+    <icons>
+      <Clear aspect="Clear" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-1-high-abs/rule-281.gif" />
+      <Approach aspect="Approach" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-1-high-abs/rule-285.gif" />
+      <Stop aspect="Stop" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-1-high-abs/rule-292.gif" />
+      <Unlit aspect="Unlit" url="/resources/icons/smallschematics/searchlights/one-high-dark.gif" />
+      <Held aspect="Held" url="/resources/icons/smallschematics/searchlights/one-high-held.gif" />
+      <Dark aspect="Dark" url="/resources/icons/smallschematics/searchlights/one-high-dark.gif" />
+      <Unknown aspect="Unknown" url="/resources/icons/misc/X-red.gif" />
+    </icons>
+  </signalmasticon>
+  <signalmasticon signalmast="Right-EB" x="529" y="134" level="9" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" degrees="90" clickmode="0" litmode="false" scale="1.0" imageset="default" class="jmri.jmrit.display.configurexml.SignalMastIconXml" id="IF$vsm:basic:one-low($0002)">
+    <icons>
+      <Clear aspect="Clear" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-1-low/rule-287.gif" />
+      <Approach aspect="Approach" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-1-low/rule-290.gif" />
+      <Stop aspect="Stop" url="/resources/icons/smallschematics/aspects/AAR-1946/SL-1-low/rule-292.gif" />
+      <Unlit aspect="Unlit" url="/resources/icons/smallschematics/searchlights/one-low-dark.gif" />
+      <Held aspect="Held" url="/resources/icons/smallschematics/searchlights/one-low-held.gif" />
+      <Dark aspect="Dark" url="/resources/icons/smallschematics/searchlights/one-low-dark.gif" />
+      <Unknown aspect="Unknown" url="/resources/icons/misc/X-red.gif" />
+    </icons>
+  </signalmasticon>
+  <sensoricon sensor="NX-Left-EB" x="55" y="135" level="10" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" momentary="false" icon="no" text="&lt;=" fontFamily="Lucida Grande" fontname="LucidaGrande-Bold" size="13" style="1" red="0" green="0" blue="0" hasBackground="no" justification="centre" class="jmri.jmrit.display.configurexml.SensorIconXml" id="IS301">
+    <active url="/dist/resources/icons/smallschematics/tracksegments/circuit-occupied.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </active>
+    <inactive url="/dist/resources/icons/smallschematics/tracksegments/circuit-empty.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inactive>
+    <unknown url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </unknown>
+    <inconsistent url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inconsistent>
+    <iconmaps />
+    <activeText text="&lt;=" red="255" green="0" blue="0" />
+    <inactiveText text="&lt;=" red="0" green="0" blue="0" />
+    <unknownText text="NX-Left-EB" red="0" green="0" blue="255" />
+    <inconsistentText text="NX-Left-EB" red="0" green="0" blue="0" />
+  </sensoricon>
+  <sensoricon sensor="NX-Left-TO-A" x="147" y="110" level="10" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" momentary="false" icon="no" text="=&gt;" fontFamily="Lucida Grande" fontname="LucidaGrande-Bold" size="13" style="1" red="0" green="0" blue="0" hasBackground="no" justification="centre" class="jmri.jmrit.display.configurexml.SensorIconXml" id="IS302">
+    <active url="/dist/resources/icons/smallschematics/tracksegments/circuit-occupied.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </active>
+    <inactive url="/dist/resources/icons/smallschematics/tracksegments/circuit-empty.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inactive>
+    <unknown url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </unknown>
+    <inconsistent url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inconsistent>
+    <iconmaps />
+    <activeText text="=&gt;" red="255" green="0" blue="0" />
+    <inactiveText text="=&gt;" red="0" green="0" blue="0" />
+    <unknownText text="NX-Left-TO-A" red="0" green="0" blue="255" />
+    <inconsistentText text="NX-Left-TO-A" red="0" green="0" blue="0" />
+  </sensoricon>
+  <sensoricon sensor="NX-Left-TO-B" x="235" y="135" level="10" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" momentary="false" icon="no" text="&lt;=" fontFamily="Lucida Grande" fontname="LucidaGrande-Bold" size="13" style="1" red="0" green="0" blue="0" hasBackground="no" justification="centre" class="jmri.jmrit.display.configurexml.SensorIconXml" id="IS303">
+    <active url="/dist/resources/icons/smallschematics/tracksegments/circuit-occupied.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </active>
+    <inactive url="/dist/resources/icons/smallschematics/tracksegments/circuit-empty.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inactive>
+    <unknown url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </unknown>
+    <inconsistent url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inconsistent>
+    <iconmaps />
+    <activeText text="&lt;=" red="255" green="0" blue="0" />
+    <inactiveText text="&lt;=" red="0" green="0" blue="0" />
+    <unknownText text="NX-Left-TO-B" red="0" green="0" blue="255" />
+    <inconsistentText text="NX-Left-TO-B" red="0" green="0" blue="0" />
+  </sensoricon>
+  <sensoricon sensor="NX-Left-TO-C" x="235" y="98" level="10" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" momentary="false" icon="no" text="&lt;=" fontFamily="Lucida Grande" fontname="LucidaGrande-Bold" size="13" style="1" red="0" green="0" blue="0" hasBackground="no" justification="centre" class="jmri.jmrit.display.configurexml.SensorIconXml" id="IS304">
+    <active url="/dist/resources/icons/smallschematics/tracksegments/circuit-occupied.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </active>
+    <inactive url="/dist/resources/icons/smallschematics/tracksegments/circuit-empty.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inactive>
+    <unknown url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </unknown>
+    <inconsistent url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inconsistent>
+    <iconmaps />
+    <activeText text="&lt;=" red="255" green="0" blue="0" />
+    <inactiveText text="&lt;=" red="0" green="0" blue="0" />
+    <unknownText text="NX-Left-TO-C" red="0" green="0" blue="255" />
+    <inconsistentText text="NX-Left-TO-C" red="0" green="0" blue="0" />
+  </sensoricon>
+  <sensoricon sensor="NX-Right-TO-A" x="435" y="135" level="10" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" momentary="false" icon="no" text="&lt;=" fontFamily="Lucida Grande" fontname="LucidaGrande-Bold" size="13" style="1" red="0" green="0" blue="0" hasBackground="no" justification="centre" class="jmri.jmrit.display.configurexml.SensorIconXml" id="IS305">
+    <active url="/dist/resources/icons/smallschematics/tracksegments/circuit-occupied.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </active>
+    <inactive url="/dist/resources/icons/smallschematics/tracksegments/circuit-empty.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inactive>
+    <unknown url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </unknown>
+    <inconsistent url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inconsistent>
+    <iconmaps />
+    <activeText text="&lt;=" red="255" green="0" blue="0" />
+    <inactiveText text="&lt;=" red="0" green="0" blue="0" />
+    <unknownText text="NX-Right-TO-A" red="0" green="0" blue="255" />
+    <inconsistentText text="NX-Right-TO-A" red="0" green="0" blue="0" />
+  </sensoricon>
+  <sensoricon sensor="NX-Right-TO-B" x="347" y="110" level="10" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" momentary="false" icon="no" text="=&gt;" fontFamily="Lucida Grande" fontname="LucidaGrande-Bold" size="13" style="1" red="0" green="0" blue="0" hasBackground="no" justification="centre" class="jmri.jmrit.display.configurexml.SensorIconXml" id="IS306">
+    <active url="/dist/resources/icons/smallschematics/tracksegments/circuit-occupied.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </active>
+    <inactive url="/dist/resources/icons/smallschematics/tracksegments/circuit-empty.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inactive>
+    <unknown url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </unknown>
+    <inconsistent url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inconsistent>
+    <iconmaps />
+    <activeText text="=&gt;" red="255" green="0" blue="0" />
+    <inactiveText text="=&gt;" red="0" green="0" blue="0" />
+    <unknownText text="NX-Right-TO-B" red="0" green="0" blue="255" />
+    <inconsistentText text="NX-Right-TO-B" red="0" green="0" blue="0" />
+  </sensoricon>
+  <sensoricon sensor="NX-Right-TO-C" x="347" y="80" level="10" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" momentary="false" icon="no" text="=&gt;" fontFamily="Lucida Grande" fontname="LucidaGrande-Bold" size="13" style="1" red="0" green="0" blue="0" hasBackground="no" justification="centre" class="jmri.jmrit.display.configurexml.SensorIconXml" id="IS307">
+    <active url="/dist/resources/icons/smallschematics/tracksegments/circuit-occupied.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </active>
+    <inactive url="/dist/resources/icons/smallschematics/tracksegments/circuit-empty.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inactive>
+    <unknown url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </unknown>
+    <inconsistent url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inconsistent>
+    <iconmaps />
+    <activeText text="=&gt;" red="255" green="0" blue="0" />
+    <inactiveText text="=&gt;" red="0" green="0" blue="0" />
+    <unknownText text="NX-Right-TO-C" red="0" green="0" blue="255" />
+    <inconsistentText text="NX-Right-TO-C" red="0" green="0" blue="0" />
+  </sensoricon>
+  <sensoricon sensor="NX-Right-EB" x="527" y="110" level="10" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" momentary="false" icon="no" text="=&gt;" fontFamily="Lucida Grande" fontname="LucidaGrande-Bold" size="13" style="1" red="0" green="0" blue="0" hasBackground="no" justification="centre" class="jmri.jmrit.display.configurexml.SensorIconXml" id="IS308">
+    <active url="/dist/resources/icons/smallschematics/tracksegments/circuit-occupied.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </active>
+    <inactive url="/dist/resources/icons/smallschematics/tracksegments/circuit-empty.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inactive>
+    <unknown url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </unknown>
+    <inconsistent url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inconsistent>
+    <iconmaps />
+    <activeText text="=&gt;" red="255" green="0" blue="0" />
+    <inactiveText text="=&gt;" red="0" green="0" blue="0" />
+    <unknownText text="NX-Right-EB" red="0" green="0" blue="255" />
+    <inconsistentText text="NX-Right-EB" red="0" green="0" blue="0" />
+  </sensoricon>
+  <sensoricon sensor="Set NX Enabled" x="100" y="220" level="10" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" momentary="false" icon="yes" class="jmri.jmrit.display.configurexml.SensorIconXml" id="IS201">
+    <active url="/dist/resources/icons/smallschematics/tracksegments/circuit-occupied.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </active>
+    <inactive url="/dist/resources/icons/smallschematics/tracksegments/circuit-empty.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inactive>
+    <unknown url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </unknown>
+    <inconsistent url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inconsistent>
+    <iconmaps />
+  </sensoricon>
+  <positionablelabel x="30" y="200" level="4" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" text="Set NX Enabled/Disabled" size="13" style="0" red="0" green="0" blue="0" hasBackground="no" justification="centre" class="jmri.jmrit.display.configurexml.PositionableLabelXml" />
+  <positionablelabel x="240" y="200" level="4" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" text="Set NX Active/Inactive" size="13" style="0" red="0" green="0" blue="0" hasBackground="no" justification="centre" class="jmri.jmrit.display.configurexml.PositionableLabelXml" />
+  <sensoricon sensor="Set NX Active - Inactive" x="300" y="220" level="10" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" momentary="false" icon="yes" class="jmri.jmrit.display.configurexml.SensorIconXml" id="IS202">
+    <active url="/dist/resources/icons/smallschematics/tracksegments/circuit-occupied.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </active>
+    <inactive url="/dist/resources/icons/smallschematics/tracksegments/circuit-empty.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inactive>
+    <unknown url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </unknown>
+    <inconsistent url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inconsistent>
+    <iconmaps />
+  </sensoricon>
+  <sensoricon sensor="NX Active" x="490" y="220" level="10" forcecontroloff="true" hidden="no" positionable="true" showtooltip="false" editable="false" momentary="false" icon="yes" class="jmri.jmrit.display.configurexml.SensorIconXml" id="IS211">
+    <active url="/dist/resources/icons/smallschematics/tracksegments/circuit-occupied.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </active>
+    <inactive url="/dist/resources/icons/smallschematics/tracksegments/circuit-empty.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inactive>
+    <unknown url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </unknown>
+    <inconsistent url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inconsistent>
+    <iconmaps />
+  </sensoricon>
+  <positionablelabel x="460" y="200" level="4" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" text="NX is Active" size="13" style="0" red="0" green="0" blue="0" hasBackground="no" justification="centre" class="jmri.jmrit.display.configurexml.PositionableLabelXml" />
+  <positionablelabel x="420" y="40" level="4" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" text="Trigger Route (Turnouts)" size="13" style="0" red="0" green="0" blue="0" hasBackground="no" justification="centre" class="jmri.jmrit.display.configurexml.PositionableLabelXml" />
+  <sensoricon sensor="Trigger Route" x="490" y="60" level="10" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" momentary="false" icon="yes" class="jmri.jmrit.display.configurexml.SensorIconXml" id="IS210">
+    <active url="/dist/resources/icons/smallschematics/tracksegments/circuit-occupied.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </active>
+    <inactive url="/dist/resources/icons/smallschematics/tracksegments/circuit-empty.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inactive>
+    <unknown url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </unknown>
+    <inconsistent url="/dist/resources/icons/smallschematics/tracksegments/circuit-error.gif" degrees="0" scale="1.0">
+      <rotation>0</rotation>
+    </inconsistent>
+    <iconmaps />
+  </sensoricon>
+  <positionablelabel x="120" y="100" level="4" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" text="1" size="13" style="0" red="255" green="255" blue="0" hasBackground="yes" redBack="0" greenBack="0" blueBack="0" fixedWidth="20" fixedHeight="20" justification="centre" class="jmri.jmrit.display.configurexml.PositionableLabelXml" />
+  <positionablelabel x="350" y="160" level="4" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" text="2" size="13" style="0" red="255" green="255" blue="0" hasBackground="yes" redBack="0" greenBack="0" blueBack="0" fixedWidth="20" fixedHeight="20" justification="centre" class="jmri.jmrit.display.configurexml.PositionableLabelXml" />
+  <positionablelabel x="350" y="50" level="4" forcecontroloff="false" hidden="no" positionable="true" showtooltip="false" editable="false" text="3" size="13" style="0" red="255" green="255" blue="0" hasBackground="yes" redBack="0" greenBack="0" blueBack="0" fixedWidth="20" fixedHeight="20" justification="centre" class="jmri.jmrit.display.configurexml.PositionableLabelXml" />
+  <layoutblock systemName="ILB1" username="Left Approach" occupancysensor="IS101" occupiedsense="2" trackcolor="darkGray" occupiedcolor="red" extracolor="white" />
+  <layoutblock systemName="ILB2" username="Right Approach" occupancysensor="IS106" occupiedsense="2" trackcolor="darkGray" occupiedcolor="red" extracolor="white" />
+  <layoutblock systemName="ILB3" username="Main" occupancysensor="IS103" occupiedsense="2" trackcolor="darkGray" occupiedcolor="red" extracolor="white" />
+  <layoutblock systemName="ILB4" username="Side" occupancysensor="IS104" occupiedsense="2" trackcolor="darkGray" occupiedcolor="red" extracolor="white" />
+  <layoutblock systemName="ILB5" username="Left TO" occupancysensor="IS102" occupiedsense="2" trackcolor="darkGray" occupiedcolor="red" extracolor="white" />
+  <layoutblock systemName="ILB6" username="Right TO" occupancysensor="IS105" occupiedsense="2" trackcolor="darkGray" occupiedcolor="red" extracolor="white" />
+  <layoutturnout ident="TO1" type="RH_TURNOUT" hidden="no" disabled="no" disableWhenOccupied="no" continuing="2" xcen="400.0" ycen="130.0" xa="430.0" ya="130.0" xb="370.0" yb="130.0" xc="370.0" yc="100.0" xd="430.0" yd="130.0" ver="1" class="jmri.jmrit.display.layoutEditor.configurexml.LayoutRHTurnoutXml" turnoutname="IT102" blockname="ILB6" connectaname="T3" connectbname="T2" connectcname="T4">
+    <signalAMast>Right-TO-A</signalAMast>
+    <signalBMast>Right-TO-B</signalBMast>
+    <signalCMast>Right-TO-C</signalCMast>
+    <sensorA>NX-Right-TO-A</sensorA>
+    <sensorB>NX-Right-TO-B</sensorB>
+    <sensorC>NX-Right-TO-C</sensorC>
+  </layoutturnout>
+  <layoutturnout ident="TO2" type="LH_TURNOUT" hidden="no" disabled="no" disableWhenOccupied="no" continuing="2" xcen="200.0" ycen="130.0" xa="170.0" ya="130.0" xb="230.0" yb="130.0" xc="230.0" yc="100.0" xd="170.0" yd="130.0" ver="1" class="jmri.jmrit.display.layoutEditor.configurexml.LayoutLHTurnoutXml" turnoutname="IT101" blockname="ILB5" connectaname="T1" connectbname="T2" connectcname="T4">
+    <signalAMast>Left-TO-A</signalAMast>
+    <signalBMast>Left-TO-B</signalBMast>
+    <signalCMast>Left-TO-C</signalCMast>
+    <sensorA>NX-Left-TO-A</sensorA>
+    <sensorB>NX-Left-TO-B</sensorB>
+    <sensorC>NX-Left-TO-C</sensorC>
+  </layoutturnout>
+  <positionablepoint ident="EB1" type="END_BUMPER" x="50.0" y="130.0" connect1name="T1" westboundsignalmast="Left-EB" westboundsensor="NX-Left-EB" class="jmri.jmrit.display.layoutEditor.configurexml.PositionablePointXml" />
+  <positionablepoint ident="EB2" type="END_BUMPER" x="550.0" y="130.0" connect1name="T3" eastboundsignalmast="Right-EB" eastboundsensor="NX-Right-EB" class="jmri.jmrit.display.layoutEditor.configurexml.PositionablePointXml" />
+  <tracksegment ident="T1" blockname="ILB1" connect1name="EB1" type1="POS_POINT" connect2name="TO2" type2="TURNOUT_A" dashed="no" mainline="yes" hidden="no" class="jmri.jmrit.display.layoutEditor.configurexml.TrackSegmentXml" />
+  <tracksegment ident="T2" blockname="ILB3" connect1name="TO2" type1="TURNOUT_B" connect2name="TO1" type2="TURNOUT_B" dashed="no" mainline="yes" hidden="no" class="jmri.jmrit.display.layoutEditor.configurexml.TrackSegmentXml" />
+  <tracksegment ident="T3" blockname="ILB2" connect1name="TO1" type1="TURNOUT_A" connect2name="EB2" type2="POS_POINT" dashed="no" mainline="yes" hidden="no" class="jmri.jmrit.display.layoutEditor.configurexml.TrackSegmentXml" />
+  <tracksegment ident="T4" blockname="ILB4" connect1name="TO2" type1="TURNOUT_C" connect2name="TO1" type2="TURNOUT_C" dashed="no" mainline="no" hidden="no" class="jmri.jmrit.display.layoutEditor.configurexml.TrackSegmentXml" />
+</panel>

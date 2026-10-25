@@ -12,7 +12,14 @@ export default defineConfig({
     host: true,
     proxy: {
       '/json': { target: jmri, ws: true, changeOrigin: true },
-      '/roster': { target: jmri, changeOrigin: true },
+      // Everything else the app reads from JMRI's web server: roster images, panel XML and icons,
+      // operations manifests, signal appearance files and the decoder index.
+      ...Object.fromEntries(
+        ['/roster', '/panel', '/operations', '/resources', '/dist', '/xml', '/prefs', '/project'].map((p) => [
+          p,
+          { target: jmri, changeOrigin: true },
+        ]),
+      ),
     },
   },
 })

@@ -1,7 +1,14 @@
 import {
   BEAN_TYPES,
+  OPS_TYPES,
+  consistKey,
   type BeanType,
+  type ConsistData,
+  type ConsistEngine,
+  type OpsType,
   type Hello,
+  type LogixData,
+  type LogixNGData,
   type Message,
   type Power,
   type RosterEntry,
@@ -32,10 +39,37 @@ export interface Snapshot {
   timeAt: number
   throttles: Record<string, ThrottleStatus & { acquired: boolean }>
   lastError: (JmriError & { at: number }) | null
+  /** Version of the JMRI Modern UI add-on, null if JMRI doesn't have it, undefined until known. */
+  addon: string | null | undefined
+  logix: Record<string, LogixData>
+  logixng: Record<string, LogixNGData>
+  /** Operations objects by type, keyed by id. */
+  ops: Record<OpsType, Record<string, Record<string, unknown>>>
+  /** Keyed by consistKey(). */
+  consists: Record<string, ConsistData>
 }
 
 const emptyBeans = () =>
   Object.fromEntries(BEAN_TYPES.map((t) => [t, {}])) as Snapshot['beans']
+
+export interface ProgramOp {
+  op: 'read' | 'write'
+  cv: string
+  value?: number
+  mode?: string
+  address?: number
+  isLongAddress?: boolean
+}
+
+export interface ProgramResult {
+  op: 'read' | 'write'
+  cv: string
+  value: number
+  status: number
+  ok: boolean
+  message: string
+  mode: string | null
+}
 
 export interface ThrottleRequest {
   name: string
@@ -67,6 +101,8 @@ export class JmriClient {
   private wanted = new Map<string, ThrottleRequest>()
   /** Beans we have sent a `get` for on the current socket (a `get` is what subscribes). */
   private watched = new Set<string>()
+  /** Requests awaiting a reply with their id. */
+  private pending = new Map<number, { resolve: (m: Message) => void; reject: (e: Error) => void }>()
   readonly base: URL
 
   constructor(base: URL) {
@@ -83,6 +119,11 @@ export class JmriClient {
       timeAt: 0,
       throttles: {},
       lastError: null,
+      addon: undefined,
+      logix: {},
+      logixng: {},
+      ops: Object.fromEntries(OPS_TYPES.map((t) => [t, {}])) as Snapshot['ops'],
+      consists: {},
     }
   }
 
@@ -136,6 +177,8 @@ export class JmriClient {
       if (this.ws !== ws) return
       clearInterval(this.pingTimer)
       this.watched.clear()
+      for (const p of this.pending.values()) p.reject(new Error('Connection to JMRI lost'))
+      this.pending.clear()
       // Server releases our throttles when the socket drops; mark them pending until re-acquired.
       const throttles = Object.fromEntries(
         Object.entries(this.snap.throttles).map(([k, t]) => [k, { ...t, acquired: false }]),
@@ -166,12 +209,31 @@ export class JmriClient {
     this.send({ type: 'rosterGroups', method: 'list' })
     this.send({ type: 'systemConnection', method: 'list' })
     this.send({ type: 'time' })
+    for (const t of OPS_TYPES) this.send({ type: t, method: 'list' })
+    this.send({ type: 'consist', method: 'list' })
     for (const req of this.wanted.values()) this.send({ type: 'throttle', data: req })
+    // Optional server add-on (programmer, Logix, LogixNG); JMRI answers 400/404 without it.
+    this.request({ type: 'modernUiAddon' })
+      .then((m) => {
+        this.set({ addon: String((m.data as { version?: string })?.version ?? '?') })
+        this.send({ type: 'logix', method: 'list' })
+        this.send({ type: 'logixng', method: 'list' })
+      })
+      .catch(() => this.set({ addon: null }))
   }
 
   // ---------- inbound ----------
 
   private receive(msg: Message | Message[]) {
+    if (!Array.isArray(msg) && msg.id && this.pending.has(msg.id)) {
+      const p = this.pending.get(msg.id)!
+      this.pending.delete(msg.id)
+      if (msg.type === 'error') {
+        const e = msg.data as JmriError
+        return p.reject(Object.assign(new Error(e?.message ?? 'JMRI error'), { code: e?.code }))
+      }
+      p.resolve(msg)
+    }
     if (Array.isArray(msg)) return this.receiveList(msg)
     if (msg.type === 'list' && Array.isArray(msg.data)) return this.receiveList(msg.data as Message[])
     const data = (msg.data ?? {}) as Record<string, unknown>
@@ -196,8 +258,15 @@ export class JmriClient {
         return this.send({ type: 'rosterGroups', method: 'list' })
       case 'throttle':
         return this.throttleUpdate(data as unknown as ThrottleStatus & { release?: unknown })
+      case 'consist':
+        return this.set({ consists: { ...this.snap.consists, [consistKey(data as unknown as ConsistData)]: data as unknown as ConsistData } })
+      case 'logix':
+        return this.set({ logix: { ...this.snap.logix, [String(data.name)]: data as unknown as LogixData } })
+      case 'logixng':
+        return this.set({ logixng: { ...this.snap.logixng, [String(data.name)]: data as unknown as LogixNGData } })
       default:
         if ((BEAN_TYPES as readonly string[]).includes(msg.type)) this.putBeans(msg.type as BeanType, [data], true)
+        else if ((OPS_TYPES as readonly string[]).includes(msg.type)) this.putOps(msg.type as OpsType, [data], true)
     }
   }
 
@@ -217,6 +286,12 @@ export class JmriClient {
       this.set({ rosterGroups: datas as unknown as RosterGroup[] })
     } else if (type === 'systemConnection') {
       this.set({ connections: datas as unknown as SystemConnection[] })
+    } else if ((OPS_TYPES as readonly string[]).includes(type)) {
+      this.putOps(type as OpsType, datas, false)
+    } else if (type === 'consist') {
+      this.set({ consists: Object.fromEntries(datas.map((d) => [consistKey(d as unknown as ConsistData), d as unknown as ConsistData])) })
+    } else if (type === 'logix' || type === 'logixng') {
+      this.set({ [type]: Object.fromEntries(datas.map((d) => [String(d.name), d])) })
     }
   }
 
@@ -233,6 +308,22 @@ export class JmriClient {
       }
     }
     this.set({ beans: { ...this.snap.beans, [type]: current } })
+  }
+
+  private putOps(type: OpsType, datas: Record<string, unknown>[], single: boolean) {
+    const current = single ? { ...this.snap.ops[type] } : {}
+    for (const d of datas) {
+      const name = String(d.name)
+      current[name] = d
+      // Trains and locations are few and change often: watch each. Cars and engines can number in the
+      // thousands, so they rely on list pushes plus refreshOps() while their page is open.
+      const key = `${type}:${name}`
+      if ((type === 'train' || type === 'location') && !this.watched.has(key)) {
+        this.watched.add(key)
+        this.send({ type, data: { name } })
+      }
+    }
+    this.set({ ops: { ...this.snap.ops, [type]: current } })
   }
 
   private putRoster(entries: RosterEntry[]) {
@@ -266,6 +357,125 @@ export class JmriClient {
   }
 
   // ---------- commands ----------
+
+  /** Send a message and resolve with the reply carrying the same id (rejects on an error reply or timeout). */
+  request<T = unknown>(msg: Message, timeoutMs = 30000): Promise<Message<T>> {
+    const id = this.nextId++
+    return new Promise((resolve, reject) => {
+      if (this.ws?.readyState !== WebSocket.OPEN) return reject(new Error('Not connected to JMRI'))
+      const timer = window.setTimeout(() => {
+        this.pending.delete(id)
+        reject(new Error('JMRI did not answer in time'))
+      }, timeoutMs)
+      this.pending.set(id, {
+        resolve: (m) => (clearTimeout(timer), resolve(m as Message<T>)),
+        reject: (e) => (clearTimeout(timer), reject(e)),
+      })
+      this.send({ ...msg, id })
+    })
+  }
+
+  /** Read or write one CV. Omit `address` for the programming track; give it to program on the main. */
+  async program(op: ProgramOp): Promise<ProgramResult> {
+    const m = await this.request<ProgramResult>({ type: 'programmer', method: 'post', data: { ...op } }, 60000)
+    return m.data!
+  }
+
+  // ---- signals ----
+
+  /** Masts take an aspect name (or "Held"); heads take an appearance number (HEAD.*). */
+  setSignalMast(name: string, aspect: string) {
+    this.post('signalMast', { name, state: aspect })
+  }
+
+  setSignalHead(name: string, appearance: number) {
+    this.post('signalHead', { name, state: appearance })
+  }
+
+  /** JMRI only honours lit/held when sent as strings. */
+  setSignalFlags(type: 'signalMast' | 'signalHead', name: string, flags: { lit?: boolean; held?: boolean }) {
+    const data: Record<string, unknown> = { name }
+    if (flags.lit != null) data.lit = String(flags.lit)
+    if (flags.held != null) data.held = String(flags.held)
+    this.post(type, data)
+  }
+
+  // ---- operations ----
+
+  refreshOps(type: OpsType) {
+    this.send({ type, method: 'list' })
+  }
+
+  /** build | reset | move (one stop) | terminate — needs the add-on except terminate. */
+  async trainAction(id: string, action: 'build' | 'reset' | 'move' | 'terminate') {
+    const m = await this.request<{ ok: boolean; status: string; built: boolean; location: string }>(
+      { type: 'trainAction', method: 'post', data: { name: id, action } },
+      60000,
+    )
+    this.send({ type: 'train', data: { name: id } })
+    this.refreshOps('car')
+    this.refreshOps('engine')
+    return m.data!
+  }
+
+  /** Set a car's or engine's location (and track). JMRI blanks weightTons unless it is resent. */
+  async setRollingStockLocation(type: 'car' | 'engine', rs: { name: string; weightTons: string }, location: string | null, track?: string) {
+    await this.request({
+      type,
+      method: 'post',
+      data: {
+        name: rs.name,
+        weightTons: rs.weightTons,
+        location: location ? { name: location, ...(track ? { track: { name: track } } : {}) } : null,
+      },
+    })
+    this.refreshOps(type)
+  }
+
+  // ---- consists ----
+
+  async createConsist(address: number, isLongAddress: boolean, name: string, engines: ConsistEngine[]) {
+    await this.request({ type: 'consist', method: 'put', data: { address, isLongAddress, name, engines } })
+    this.send({ type: 'consist', method: 'list' })
+  }
+
+  /** `engines` is the full membership; JMRI adds, removes and repositions to match. */
+  async setConsist(c: { address: number; isLongAddress: boolean }, fields: { name?: string; engines?: ConsistEngine[] }) {
+    await this.request({ type: 'consist', method: 'post', data: { address: c.address, isLongAddress: c.isLongAddress, ...fields } })
+  }
+
+  /** JMRI applies direction only when a loco joins, so flip it by removing and re-adding. */
+  async setConsistDirection(c: ConsistData, address: number, forward: boolean) {
+    const others = c.engines.filter((e) => e.address !== address)
+    const me = c.engines.find((e) => e.address === address)
+    if (!me) return
+    await this.setConsist(c, { engines: others })
+    await this.setConsist(c, { engines: c.engines.map((e) => (e.address === address ? { ...e, forward } : e)) })
+  }
+
+  /** The WebSocket can't delete consists; JMRI's REST API can. JMRI 5.6 needs a JSON body here, or it fails with a 500. */
+  async deleteConsist(c: { address: number; isLongAddress: boolean }) {
+    const r = await fetch(new URL(`json/consist/${encodeURIComponent(consistKey(c))}`, this.base), {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}',
+    })
+    if (!r.ok) throw new Error(`JMRI refused to delete the consist (HTTP ${r.status})`)
+    const consists = { ...this.snap.consists }
+    delete consists[consistKey(c)]
+    this.set({ consists })
+    this.send({ type: 'consist', method: 'list' })
+  }
+
+  setLogixEnabled(name: string, enabled: boolean) {
+    this.post('logix', { name, enabled })
+  }
+
+  /** `name` may be a LogixNG or a ConditionalNG. */
+  setLogixNG(name: string, fields: { enabled?: boolean; execute?: boolean }) {
+    this.post('logixng', { name, ...fields })
+  }
+
 
   private post(type: string, data: Record<string, unknown>) {
     this.send({ type, method: 'post', data, id: this.nextId++ })
