@@ -86,7 +86,7 @@ const ALL_NAV = NAV.flatMap((s) => s.items)
 
 export default function App() {
   const [route, go] = useRoute()
-  const [theme, setTheme] = useTheme()
+  const [, setTheme, dark] = useTheme()
   const client = useClient()
   const toast = useToast()
   const conn = useJmri((s) => s.conn)
@@ -131,9 +131,6 @@ export default function App() {
     </button>
   )
   const moreActive = !ALL_NAV.find((n) => n.route === route)?.primary
-
-  const dark =
-    theme === 'dark' || (theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
 
   return (
     <div className="shell">
