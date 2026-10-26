@@ -4,11 +4,16 @@
 export interface DecoderMatch {
   family: string
   model: string
+  /** Decoder definition file, under xml/decoders. */
+  file: string
+  mfg: string
 }
 
 export interface DecoderIndex {
   manufacturer(id: number): string | null
   identify(mfgId: number, version: number): DecoderMatch[]
+  /** Every decoder model JMRI knows, by manufacturer. */
+  all(): Map<string, DecoderMatch[]>
 }
 
 let cached: Promise<DecoderIndex> | null = null
@@ -34,6 +39,13 @@ const inRange = (el: Element, v: number) => {
   return v >= Number(lo) && v <= Number(hi ?? lo)
 }
 
+const match = (f: Element, m: Element): DecoderMatch => ({
+  family: f.getAttribute('name') ?? '',
+  model: m.getAttribute('model') ?? '',
+  file: f.getAttribute('file') ?? '',
+  mfg: f.getAttribute('mfg') ?? '',
+})
+
 function parse(xml: string): DecoderIndex {
   const doc = new DOMParser().parseFromString(xml, 'application/xml')
   const mfgById = new Map<number, string>()
@@ -58,8 +70,17 @@ function parse(xml: string): DecoderIndex {
           const ranges = [m, ...m.querySelectorAll(':scope > versionCV')].map((el) => inRange(el, version))
           const known = ranges.filter((r) => r != null)
           const ok = known.length ? known.some(Boolean) : familyOk === true
-          if (ok) out.push({ family: f.getAttribute('name') ?? '', model: m.getAttribute('model') ?? '' })
+          if (ok) out.push(match(f, m))
         }
+      }
+      return out
+    },
+    all() {
+      const out = new Map<string, DecoderMatch[]>()
+      for (const f of families) {
+        const list = out.get(f.getAttribute('mfg') ?? '') ?? []
+        for (const m of f.querySelectorAll(':scope > model')) list.push(match(f, m))
+        out.set(f.getAttribute('mfg') ?? '', list)
       }
       return out
     },

@@ -3,6 +3,7 @@ import type { ProgramOp, ProgramResult } from '../jmri/client.ts'
 import { CV29_BITS, loadDecoderIndex, longAddressCVs, longAddressFromCVs, type DecoderMatch } from '../jmri/decoders.ts'
 import { useClient, useJmri, useToast } from '../state.tsx'
 import { AddonMissing } from './AddonMissing.tsx'
+import { DecoderPanes } from './DecoderPanes.tsx'
 
 interface ProgStatus {
   available: boolean
@@ -53,6 +54,7 @@ export function ProgrammingPage() {
   const [busy, setBusy] = useState<string | null>(null)
   const [log, setLog] = useState<LogLine[]>([])
   const [info, setInfo] = useState<DecoderInfo | null>(null)
+  const [view, setView] = useState<'quick' | 'decoder'>('quick')
 
   useEffect(() => {
     if (!addon || conn !== 'open') return
@@ -134,6 +136,14 @@ export function ProgrammingPage() {
         <h1>Programming</h1>
         {busy && <span className="pill warn">{busy}…</span>}
       </div>
+      <div className="segmented" role="group" aria-label="Programming view" style={{ alignSelf: 'flex-start' }}>
+        <button aria-pressed={view === 'quick'} onClick={() => setView('quick')}>
+          Quick setup
+        </button>
+        <button aria-pressed={view === 'decoder'} onClick={() => setView('decoder')}>
+          Decoder settings
+        </button>
+      </div>
 
       <section className="card pad">
         <div className="row-wrap">
@@ -198,7 +208,9 @@ export function ProgrammingPage() {
         </p>
       </section>
 
-      {target === 'track' && (
+      {view === 'decoder' && <DecoderPanes op={op} run={run} busy={!!busy || !mainOk} canRead={canRead} />}
+
+      {view === 'quick' && target === 'track' && (
         <section className="card pad">
           <div className="row-wrap">
             <h2>Decoder</h2>
@@ -250,7 +262,7 @@ export function ProgrammingPage() {
         </section>
       )}
 
-      {target === 'track' && (
+      {view === 'quick' && target === 'track' && (
         <AddressCard
           disabled={!!busy || !canRead}
           onWrite={(address) =>
@@ -272,19 +284,23 @@ export function ProgrammingPage() {
         />
       )}
 
+      {view === 'quick' && (
       <Cv29Card
         disabled={!!busy || !mainOk}
         canRead={canRead}
         read={() => op({ op: 'read', cv: '29' }).then((r) => r.value)}
         write={(v) => run('Writing CV29', () => op({ op: 'write', cv: '29', value: v }).then(() => {}))}
       />
+      )}
 
+      {view === 'quick' && (
       <CvCard
         disabled={!!busy || !mainOk}
         canRead={canRead}
         read={(cv) => op({ op: 'read', cv }).then((r) => r.value)}
         write={(cv, v) => run(`Writing CV${cv}`, () => op({ op: 'write', cv, value: v }).then(() => {}))}
       />
+      )}
 
       <section className="card pad">
         <h2>Log</h2>

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { IconSearch, IconX } from '../icons.tsx'
-import { TRAIN_STATUS, type LocationData, type RollingStockData, type TrainData } from '../jmri/protocol.ts'
+import { TRAIN_STATUS, type LocationData, type ManifestStop, type RollingStockData, type TrainData } from '../jmri/protocol.ts'
 import { useClient, useJmri, useToast } from '../state.tsx'
+import { SwitchLists } from './SwitchLists.tsx'
 
-type Tab = 'trains' | 'locations' | 'cars' | 'engines'
+type Tab = 'trains' | 'switchLists' | 'locations' | 'cars' | 'engines'
 
 /** JMRI writes loads like "E<mpty>"; the brackets are markup, not text. */
 const cleanLoad = (l?: string) => (l ?? '').replace(/[<>]/g, '')
@@ -15,11 +16,14 @@ function trainTone(code: number) {
   return ''
 }
 
+const TAB_LABEL: Record<Tab, string> = { trains: 'Trains', switchLists: 'Switch lists', locations: 'Locations', cars: 'Cars', engines: 'Engines' }
+
 export function OperationsPage() {
   const ops = useJmri((s) => s.ops)
   const [tab, setTab] = useState<Tab>('trains')
   const counts: Record<Tab, number> = {
     trains: Object.keys(ops.train).length,
+    switchLists: Object.keys(ops.location).length,
     locations: Object.keys(ops.location).length,
     cars: Object.keys(ops.car).length,
     engines: Object.keys(ops.engine).length,
@@ -30,13 +34,15 @@ export function OperationsPage() {
         <h1>Operations</h1>
       </div>
       <div className="segmented" role="group" aria-label="Operations section" style={{ alignSelf: 'flex-start', flexWrap: 'wrap' }}>
-        {(['trains', 'locations', 'cars', 'engines'] as Tab[]).map((t) => (
-          <button key={t} aria-pressed={tab === t} onClick={() => setTab(t)} style={{ textTransform: 'capitalize' }}>
-            {t} ({counts[t]})
+        {(['trains', 'switchLists', 'locations', 'cars', 'engines'] as Tab[]).map((t) => (
+          <button key={t} aria-pressed={tab === t} onClick={() => setTab(t)}>
+            {TAB_LABEL[t]}
+            {t === 'switchLists' ? '' : ` (${counts[t]})`}
           </button>
         ))}
       </div>
       {tab === 'trains' && <Trains />}
+      {tab === 'switchLists' && <SwitchLists />}
       {tab === 'locations' && <Locations />}
       {(tab === 'cars' || tab === 'engines') && <RollingStock type={tab === 'cars' ? 'car' : 'engine'} />}
     </div>
@@ -138,16 +144,6 @@ function TrainCard({ t, onManifest }: { t: TrainData; onManifest: () => void }) 
       </div>
     </section>
   )
-}
-
-interface ManifestStop {
-  name: string
-  userName: string
-  departureTime?: string
-  comment?: string
-  trainDirection?: string
-  engines: { add: RollingStockData[]; remove: RollingStockData[] }
-  cars: { add: RollingStockData[]; remove: RollingStockData[]; total: number; loads: number; empties: number }
 }
 
 function Manifest({ t, onClose }: { t: TrainData; onClose: () => void }) {

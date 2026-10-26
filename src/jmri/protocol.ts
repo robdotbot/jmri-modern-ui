@@ -259,6 +259,17 @@ export interface LocationData {
   track: TrackData[]
 }
 
+/** One stop of a built train's manifest (/operations/manifest/<train id>?format=json). */
+export interface ManifestStop {
+  name: string
+  userName: string
+  departureTime?: string
+  comment?: string
+  trainDirection?: string
+  engines: { add: RollingStockData[]; remove: RollingStockData[] }
+  cars: { add: RollingStockData[]; remove: RollingStockData[]; total: number; loads: number; empties: number }
+}
+
 export interface RollingStockData {
   name: string
   number: string
@@ -313,16 +324,42 @@ export const displayName = (b: { name: string; userName?: string | null }) => b.
 
 // ---- types served by the JMRI Modern UI add-on (addon/) ----
 
+/** A Logix state variable (jmri.ConditionalVariable); `type` is a Conditional.Type name. */
+export interface ConditionalVariableData {
+  description?: string
+  not: boolean
+  operator: 'NONE' | 'AND' | 'OR'
+  type: string
+  itemType?: string
+  name: string
+  dataString: string | null
+  num1: number
+  num2: number
+  trigger: boolean
+}
+
+/** A Logix action (jmri.ConditionalAction); `type` is a Conditional.Action name, option 1/2/3 = on true/false/change. */
+export interface ConditionalActionData {
+  description?: string
+  option: number
+  type: string
+  itemType?: string
+  deviceName: string
+  actionData: number
+  actionString: string | null
+}
+
 export interface ConditionalData {
   name: string
   userName: string | null
   comment: string | null
   state: 'true' | 'false' | 'unknown'
+  /** ALL_AND, ALL_OR or MIXED */
   logicType: string
   antecedent: string
   triggerOnChange: boolean
-  variables: string[]
-  actions: string[]
+  variables: ConditionalVariableData[]
+  actions: ConditionalActionData[]
 }
 
 export interface LogixData {
@@ -333,6 +370,33 @@ export interface LogixData {
   conditionals: ConditionalData[]
 }
 
+/** An editable property of a LogixNG item, found by the add-on. */
+export interface NGField {
+  key: string
+  kind: 'bean' | 'enum' | 'string' | 'int'
+  value: string | number | null
+  beanType?: string
+  options?: { value: string; label: string }[]
+}
+
+export interface NGNode {
+  system: string
+  userName: string | null
+  /** Item class, e.g. ActionTurnout */
+  type: string
+  short: string
+  long: string
+  enabled: boolean
+  fields: NGField[]
+  sockets: NGSocket[]
+}
+
+export interface NGSocket {
+  name: string
+  kind: 'action' | 'expression' | 'other'
+  child: NGNode | null
+}
+
 export interface ConditionalNGData {
   name: string
   userName: string | null
@@ -340,6 +404,7 @@ export interface ConditionalNGData {
   enabled: boolean
   /** JMRI's own text rendering of the action/expression tree. */
   tree: string
+  root?: NGSocket
 }
 
 export interface LogixNGData {

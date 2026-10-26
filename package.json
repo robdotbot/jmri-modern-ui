@@ -1,7 +1,7 @@
 {
   "name": "jmri-modern-ui",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,7 +12,8 @@
     "typecheck": "tsc -b",
     "test:e2e": "node tests/e2e.mjs && node tests/e2e-features.mjs",
     "build:addon": "node addon/build.mjs",
-    "test:e2e:noaddon": "node tests/e2e-noaddon.mjs"
+    "test:e2e:noaddon": "node tests/e2e-noaddon.mjs",
+    "test:e2e:panels": "node tests/e2e-panel-edit.mjs"
   },
   "dependencies": {
     "react": "^19.3.1",

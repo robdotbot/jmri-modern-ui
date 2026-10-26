@@ -1,6 +1,33 @@
 // Parses the panel XML JMRI's /panel servlet produces (web/servlet/panel) into a renderable model.
 // Covers Layout Editor track (points, turnouts, segments, blocks) and the common positionable icons.
 
+// Turnout states (protocol.ts), repeated so this parser has no dependencies.
+const CLOSED_ = 2
+const THROWN_ = 4
+
+/** The slip route the two turnouts currently select, or null when they match none. */
+export function slipState(slip: LayoutSlip, a: number | undefined, b: number | undefined): SlipState | null {
+  for (const [k, v] of Object.entries(slip.states) as [SlipState, [number, number]][]) if (v[0] === a && v[1] === b) return k
+  return null
+}
+
+/**
+ * Next slip route after a click on its left (A/B) or right (C/D) side, as in LayoutSlip.toggleState:
+ * each side swaps which of its two tracks the route uses.
+ */
+export function nextSlipState(slip: LayoutSlip, current: SlipState | null, side: 'left' | 'right'): SlipState {
+  if (side === 'left') {
+    if (current === 'AC') return slip.double ? 'BC' : 'BD'
+    if (current === 'AD') return 'BD'
+    if (current === 'BD') return 'AD'
+    return 'AC'
+  }
+  if (current === 'AC') return 'AD'
+  if (current === 'AD') return 'AC'
+  if (current === 'BD') return slip.double ? 'BC' : 'AC'
+  return 'BD'
+}
+
 export interface PanelListItem {
   name: string
   userName: string
@@ -14,7 +41,8 @@ export interface IconState {
   scale: number
 }
 
-export type Positionable =
+/** `tag` is the element name the servlet used, which the add-on needs to find the item again for editing. */
+export type Positionable = { tag: string } & (
   | { kind: 'label'; x: number; y: number; level: number; text?: string; icon?: IconState; style: TextStyle }
   | {
       kind: 'sensor' | 'turnout' | 'light'
@@ -31,6 +59,7 @@ export type Positionable =
   | { kind: 'signalMast'; x: number; y: number; level: number; bean: string; icons: Record<string, IconState>; degrees: number; scale: number; clickmode: number; control: boolean }
   | { kind: 'signalHead'; x: number; y: number; level: number; bean: string; icons: Record<string, IconState>; clickmode: number; control: boolean }
   | { kind: 'memory'; x: number; y: number; level: number; bean: string; style: TextStyle; states: { value: string; icon: IconState }[] }
+)
 
 export interface TextStyle {
   size: number
@@ -77,6 +106,47 @@ export interface TrackSegment {
   bezier?: Point[]
 }
 
+/** Slip states, named by the route through the slip; each maps to [turnout A state, turnout B state]. */
+export type SlipState = 'AC' | 'AD' | 'BD' | 'BC'
+
+export interface LayoutSlip {
+  ident: string
+  double: boolean
+  center: Point
+  a: Point
+  b: Point
+  c: Point
+  d: Point
+  turnout: string | null
+  turnoutB: string | null
+  states: Partial<Record<SlipState, [number, number]>>
+  blocks: { a: string | null; b: string | null; c: string | null; d: string | null }
+  disabled: boolean
+  hidden: boolean
+}
+
+export interface TurntableRay {
+  index: number
+  angle: number
+  /** Where the ray's track connects, outside the turntable pit. */
+  end: Point
+  /** Point on the pit's edge the ray starts from. */
+  edge: Point
+  turnout: string | null
+  /** Turnout state that lines the bridge up with this ray. */
+  turnoutState: number
+  disabled: boolean
+}
+
+export interface LayoutTurntable {
+  ident: string
+  center: Point
+  radius: number
+  block: string | null
+  turnoutControlled: boolean
+  rays: TurntableRay[]
+}
+
 export interface LayoutBlockInfo {
   name: string
   occupancySensor: string | null
@@ -94,8 +164,10 @@ export interface LayoutModel {
   turnoutCircles: boolean
   circleSize: number
   drawUnselectedLeg: boolean
-  points: Point[]
+  points: (Point & { ident: string })[]
   turnouts: LayoutTurnout[]
+  slips: LayoutSlip[]
+  turntables: LayoutTurntable[]
   segments: TrackSegment[]
 }
 
@@ -195,11 +267,13 @@ export function parsePanel(xml: string): PanelModel {
   const isLayout = root.getAttribute('paneltype') === 'LayoutPanel'
   const pointByKey = new Map<string, Point>()
   const turnouts: LayoutTurnout[] = []
+  const slips: LayoutSlip[] = []
+  const turntables: LayoutTurntable[] = []
   const rawSegments: Element[] = []
   const blocks: Record<string, LayoutBlockInfo> = {}
 
   for (const el of root.children) {
-    const base = { x: num(el, 'x'), y: num(el, 'y'), level: num(el, 'level', 1) }
+    const base = { x: num(el, 'x'), y: num(el, 'y'), level: num(el, 'level', 1), tag: el.nodeName }
     const control = controlling && !yes(el, 'forcecontroloff')
     if (yes(el, 'hidden')) continue
     switch (el.nodeName) {
@@ -326,6 +400,71 @@ export function parsePanel(xml: string): PanelModel {
         for (const k of ['A', 'B', 'C', 'D'] as const) pointByKey.set(`${ident}.TURNOUT_${k}`, t[k.toLowerCase() as 'a'])
         break
       }
+      case 'layoutSlip':
+      case 'layoutslip': {
+        const ident = el.getAttribute('ident') ?? ''
+        const center = { x: num(el, 'xcen'), y: num(el, 'ycen') }
+        const a = { x: num(el, 'xa'), y: num(el, 'ya') }
+        const b = { x: num(el, 'xb'), y: num(el, 'yb') }
+        const double = el.getAttribute('slipType') === 'DOUBLE_SLIP'
+        // JMRI's defaults, used when the file has no <states>.
+        const states: LayoutSlip['states'] = { AC: [CLOSED_, CLOSED_], AD: [CLOSED_, THROWN_], BD: [THROWN_, THROWN_], ...(double ? { BC: [THROWN_, CLOSED_] } : {}) }
+        for (const st of el.querySelectorAll(':scope > states > *')) {
+          const key = st.nodeName.replace('-', '') as SlipState
+          if (!['AC', 'AD', 'BD', 'BC'].includes(key)) continue
+          states[key] = [Number(st.querySelector(':scope > turnout')?.textContent ?? CLOSED_), Number(st.querySelector(':scope > turnoutB')?.textContent ?? CLOSED_)]
+        }
+        const blockA = el.getAttribute('blockname')
+        const slip: LayoutSlip = {
+          ident,
+          double,
+          center,
+          a,
+          b,
+          // C and D mirror A and B through the centre (LayoutSlipView).
+          c: { x: 2 * center.x - a.x, y: 2 * center.y - a.y },
+          d: { x: 2 * center.x - b.x, y: 2 * center.y - b.y },
+          turnout: el.querySelector(':scope > turnout')?.textContent || null,
+          turnoutB: el.querySelector(':scope > turnoutB')?.textContent || null,
+          states,
+          blocks: {
+            a: blockA,
+            b: el.getAttribute('blockbname') ?? blockA,
+            c: el.getAttribute('blockcname') ?? blockA,
+            d: el.getAttribute('blockdname') ?? blockA,
+          },
+          disabled: yes(el, 'disabled'),
+          hidden: yes(el, 'hidden'),
+        }
+        slips.push(slip)
+        for (const k of ['A', 'B', 'C', 'D'] as const) pointByKey.set(`${ident}.SLIP_${k}`, slip[k.toLowerCase() as 'a'])
+        break
+      }
+      case 'layoutturntable': {
+        const ident = el.getAttribute('ident') ?? ''
+        const center = { x: num(el, 'xcen'), y: num(el, 'ycen') }
+        const radius = num(el, 'radius', 25)
+        // Rays connect one turnout-circle beyond the pit (LayoutTurntableView.getRayCoordsIndexed).
+        const reach = radius + 3 * num(root, 'turnoutcirclesize', 2)
+        const turnoutControlled = yes(el, 'turnoutControlled')
+        const rays = [...el.querySelectorAll(':scope > raytrack')].map((r): TurntableRay => {
+          const angle = num(r, 'angle')
+          const rad = (angle * Math.PI) / 180
+          const at = (d: number) => ({ x: center.x + d * Math.sin(rad), y: center.y - d * Math.cos(rad) })
+          return {
+            index: num(r, 'index'),
+            angle,
+            end: at(reach),
+            edge: at(radius),
+            turnout: turnoutControlled ? r.getAttribute('turnout') || null : null,
+            turnoutState: r.getAttribute('turnoutstate') === 'thrown' ? THROWN_ : CLOSED_,
+            disabled: yes(r, 'disabled'),
+          }
+        })
+        turntables.push({ ident, center, radius, block: el.getAttribute('blockname'), turnoutControlled, rays })
+        for (const r of rays) pointByKey.set(`${ident}.TURNTABLE_RAY_${r.index}`, r.end)
+        break
+      }
       case 'levelxing': {
         const ident = el.getAttribute('ident') ?? ''
         for (const k of ['a', 'b', 'c', 'd']) {
@@ -355,7 +494,7 @@ export function parsePanel(xml: string): PanelModel {
     for (const el of rawSegments) {
       const from = pointByKey.get(`${el.getAttribute('connect1name')}.${el.getAttribute('type1')}`)
       const to = pointByKey.get(`${el.getAttribute('connect2name')}.${el.getAttribute('type2')}`)
-      if (!from || !to) continue // e.g. slips/turntables we don't draw
+      if (!from || !to) continue // e.g. traversers, which we don't draw
       const seg: TrackSegment = {
         ident: el.getAttribute('ident') ?? '',
         from,
@@ -392,8 +531,10 @@ export function parsePanel(xml: string): PanelModel {
       turnoutCircles: yes(root, 'turnoutcircles'),
       circleSize: num(root, 'turnoutcirclesize', 2),
       drawUnselectedLeg: yes(root, 'turnoutdrawunselectedleg'),
-      points: [...pointByKey.entries()].filter(([k]) => k.endsWith('.POS_POINT')).map(([, p]) => p),
+      points: [...pointByKey.entries()].filter(([k]) => k.endsWith('.POS_POINT')).map(([k, p]) => ({ ...p, ident: k.slice(0, -'.POS_POINT'.length) })),
       turnouts,
+      slips,
+      turntables,
       segments,
     }
   }

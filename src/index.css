@@ -1462,3 +1462,432 @@ select.input {
     transition: none !important;
   }
 }
+
+/* ---------- switch lists ---------- */
+
+.cond.done {
+  opacity: 0.55;
+}
+
+.switch-list .table td,
+.switch-list .table th {
+  vertical-align: top;
+}
+
+@media print {
+  .topbar,
+  .sidenav,
+  .no-print,
+  .page-head,
+  .page > .segmented {
+    display: none !important;
+  }
+  .shell,
+  .main,
+  .page {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+    overflow: visible !important;
+  }
+  .switch-list {
+    border: 0;
+    box-shadow: none;
+  }
+  .switch-list .cond {
+    break-inside: avoid;
+  }
+}
+
+/* ---------- decoder panes ---------- */
+
+.col {
+  display: flex;
+  flex-direction: column;
+}
+
+.dp {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dp-actions {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.dp-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  align-items: flex-start;
+}
+
+.dp-row > .dp-col {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.dp-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dp-grid {
+  display: grid;
+  grid-auto-columns: max-content;
+  gap: 6px 16px;
+  align-items: start;
+  overflow-x: auto;
+}
+
+/* A grid item lays its contents side by side, as JMRI does. */
+.dp-griditem {
+  display: flex;
+  gap: 6px 12px;
+  align-items: center;
+}
+
+.dp-row > .dp-sep,
+.dp-griditem > .dp-sep {
+  width: 0;
+  margin: 0 4px;
+  align-self: stretch;
+  border-top: 0;
+  border-left: 1px solid var(--border);
+}
+
+.dp-heading {
+  font-weight: 600;
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+.dp-sep {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 6px 0;
+  width: 100%;
+}
+
+.dp-setting {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 10px;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 0;
+  font-size: 14px;
+}
+
+.dp-setting.wide {
+  grid-template-columns: minmax(0, 1fr) 10px;
+}
+
+.dp-setting.wide > :nth-child(2) {
+  grid-row: 2;
+}
+
+.dp-setting.wide.below > .dp-name {
+  grid-row: 3;
+}
+
+.dp-setting.unnamed {
+  grid-template-columns: auto 10px;
+  justify-content: start;
+}
+
+.dp-setting.unnamed > :first-child {
+  grid-row: 1;
+}
+
+.dp-setting .input {
+  max-width: 260px;
+  min-width: 0;
+}
+
+.dp-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.dp-cv {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.dp-num {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.dp-num .input {
+  width: 90px;
+}
+
+.dp-state {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+.dp-state.read,
+.dp-state.stored {
+  background: var(--ok);
+}
+
+.dp-state.file {
+  background: var(--accent);
+}
+
+.dp-state.edited {
+  background: var(--warn);
+}
+
+.dp-setting.edited .input,
+.dp-fnmap td.edited {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+}
+
+.dp-fnmap th,
+.dp-fnmap td {
+  text-align: center;
+  padding: 4px 6px;
+  font-size: 12px;
+}
+
+.dp-fnmap tbody th {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.dp-speed {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dp-speed svg {
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+
+.dp-speed-cells {
+  display: grid;
+  grid-template-columns: repeat(7, 52px);
+  gap: 4px;
+}
+
+.dp-speed-cells .input {
+  width: 52px;
+  padding: 4px;
+  text-align: right;
+}
+
+@media (max-width: 640px) {
+  .dp-setting {
+    grid-template-columns: minmax(0, 1fr) 10px;
+  }
+  .dp-setting > :nth-child(2) {
+    grid-column: 1;
+  }
+  .dp-setting > .dp-state {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .dp-speed-cells {
+    grid-template-columns: repeat(4, 52px);
+  }
+}
+
+/* ---------- logic editing ---------- */
+
+.store-config {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.store-pop {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 20;
+  width: min(380px, 90vw);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: var(--shadow);
+}
+
+.danger-text {
+  color: var(--danger);
+}
+
+.small-btn {
+  padding: 2px 8px;
+  font-size: 12px;
+  min-height: 0;
+}
+
+.logic-tools {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+.cond-edit {
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  border-top: 0;
+}
+
+.edit-row {
+  gap: 6px;
+  align-items: center;
+}
+
+.edit-row .input {
+  width: auto;
+  min-width: 0;
+  max-width: 230px;
+}
+
+.field-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ng-socket {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 3px 0;
+}
+
+.ng-socket-name {
+  font: 12px/1.9 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 52px;
+}
+
+.ng-socket-name.expression {
+  color: var(--accent);
+}
+
+.ng-add {
+  width: auto;
+  font-size: 13px;
+  padding: 4px 8px;
+}
+
+.ng-node {
+  flex: 1;
+  min-width: 0;
+  border-left: 2px solid var(--border);
+  padding-left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ng-node.disabled > .ng-node-head .ng-desc {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.ng-node-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.ng-desc {
+  font-size: 14px;
+}
+
+.ng-fields {
+  gap: 8px;
+}
+
+.ng-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ng-field .input {
+  width: auto;
+  min-width: 140px;
+  max-width: 240px;
+}
+
+.ng-children {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- panel editing ---------- */
+
+.panel-editbar {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--info-soft);
+}
+
+.panel-editbar .input {
+  width: auto;
+}
+
+.panel-drag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  touch-action: none;
+}
+
+.panel-canvas.editing .panel-item {
+  cursor: grab;
+  outline: 1px dashed rgb(31 111 235 / 45%);
+  outline-offset: 1px;
+}
+
+.panel-drag.selected > .panel-item {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.panel-handles {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  z-index: 10000;
+  pointer-events: none;
+}
+
+.panel-handle {
+  pointer-events: all;
+  fill: rgb(31 111 235 / 35%);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  cursor: grab;
+  touch-action: none;
+}
+
+.panel-handle:hover {
+  fill: rgb(31 111 235 / 60%);
+}

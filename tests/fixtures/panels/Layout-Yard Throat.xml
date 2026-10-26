@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Hand-made in the /panel servlet's format (elements as LayoutSlipViewXml/LayoutTurntableViewXml store them):
+     a single slip, a double slip and a turnout-controlled turntable. The test creates the turnouts. -->
+<panel name="Yard Throat" paneltype="LayoutPanel" height="300" width="640" panelheight="300" panelwidth="640" showtooltips="yes" controlling="yes" xscale="1.0" yscale="1.0" mainlinetrackwidth="2" sidelinetrackwidth="1" mainlineblockwidth="4" sidelineblockwidth="2" turnoutcircles="yes" turnoutcirclesize="2" turnoutdrawunselectedleg="yes" backgroundcolor="lightGray" defaulttrackcolor="darkGray" defaultoccupiedtrackcolor="red" defaulttextcolor="black" turnoutcirclecolor="black" turnoutcirclethrowncolor="black">
+  <positionablelabel x="40" y="20" level="4" hidden="no" text="Yard throat" size="13" style="1" red="0" green="0" blue="0" hasBackground="no" justification="left" class="jmri.jmrit.display.configurexml.PositionableLabelXml" />
+  <positionablepoint ident="A1" type="1" x="40.0" y="170.0" class="jmri.jmrit.display.layoutEditor.configurexml.PositionablePointXml" />
+  <positionablepoint ident="A2" type="1" x="40.0" y="185.0" class="jmri.jmrit.display.layoutEditor.configurexml.PositionablePointXml" />
+  <positionablepoint ident="A3" type="1" x="300.0" y="110.0" class="jmri.jmrit.display.layoutEditor.configurexml.PositionablePointXml" />
+  <positionablepoint ident="A4" type="1" x="380.0" y="240.0" class="jmri.jmrit.display.layoutEditor.configurexml.PositionablePointXml" />
+  <positionablepoint ident="A5" type="1" x="40.0" y="240.0" class="jmri.jmrit.display.layoutEditor.configurexml.PositionablePointXml" />
+  <positionablepoint ident="A6" type="1" x="40.0" y="255.0" class="jmri.jmrit.display.layoutEditor.configurexml.PositionablePointXml" />
+  <positionablepoint ident="A7" type="1" x="380.0" y="200.0" class="jmri.jmrit.display.layoutEditor.configurexml.PositionablePointXml" />
+  <layoutSlip ident="SL1" slipType="SINGLE_SLIP" hidden="no" disabled="no" disableWhenOccupied="no" xcen="130.0" ycen="170.0" xa="100.0" ya="170.0" xb="104.0" yb="185.0" class="jmri.jmrit.display.layoutEditor.configurexml.LayoutSingleSlipXml">
+    <turnout>IT201</turnout>
+    <turnoutB>IT202</turnoutB>
+    <states>
+      <A-C><turnout>2</turnout><turnoutB>2</turnoutB></A-C>
+      <A-D><turnout>2</turnout><turnoutB>4</turnoutB></A-D>
+      <B-D><turnout>4</turnout><turnoutB>4</turnoutB></B-D>
+    </states>
+  </layoutSlip>
+  <layoutSlip ident="SL2" slipType="DOUBLE_SLIP" hidden="no" disabled="no" disableWhenOccupied="no" xcen="220.0" ycen="240.0" xa="190.0" ya="240.0" xb="194.0" yb="255.0" class="jmri.jmrit.display.layoutEditor.configurexml.LayoutDoubleSlipXml">
+    <turnout>IT203</turnout>
+    <turnoutB>IT204</turnoutB>
+    <states>
+      <A-C><turnout>2</turnout><turnoutB>2</turnoutB></A-C>
+      <A-D><turnout>2</turnout><turnoutB>4</turnoutB></A-D>
+      <B-D><turnout>4</turnout><turnoutB>4</turnoutB></B-D>
+      <B-C><turnout>4</turnout><turnoutB>2</turnoutB></B-C>
+    </states>
+  </layoutSlip>
+  <layoutturntable ident="TUR1" radius="40.0" xcen="480.0" ycen="170.0" turnoutControlled="yes" class="jmri.jmrit.display.layoutEditor.configurexml.LayoutTurntableXml">
+    <raytrack angle="270.0" index="50" connectname="T5" turnout="IT211" turnoutstate="thrown" />
+    <raytrack angle="0.0" index="51" turnout="IT212" turnoutstate="thrown" />
+    <raytrack angle="45.0" index="52" turnout="IT213" turnoutstate="thrown" />
+    <raytrack angle="90.0" index="53" turnout="IT214" turnoutstate="thrown" />
+  </layoutturntable>
+  <tracksegment ident="T1" connect1name="A1" type1="POS_POINT" connect2name="SL1" type2="SLIP_A" mainline="yes" hidden="no" class="jmri.jmrit.display.layoutEditor.configurexml.TrackSegmentXml" />
+  <tracksegment ident="T2" connect1name="A2" type1="POS_POINT" connect2name="SL1" type2="SLIP_B" mainline="no" hidden="no" class="jmri.jmrit.display.layoutEditor.configurexml.TrackSegmentXml" />
+  <tracksegment ident="T3" connect1name="SL1" type1="SLIP_D" connect2name="A3" type2="POS_POINT" mainline="no" hidden="no" class="jmri.jmrit.display.layoutEditor.configurexml.TrackSegmentXml" />
+  <tracksegment ident="T5" connect1name="SL1" type1="SLIP_C" connect2name="TUR1" type2="TURNTABLE_RAY_50" mainline="yes" hidden="no" class="jmri.jmrit.display.layoutEditor.configurexml.TrackSegmentXml" />
+  <tracksegment ident="T4" connect1name="A5" type1="POS_POINT" connect2name="SL2" type2="SLIP_A" mainline="no" hidden="no" class="jmri.jmrit.display.layoutEditor.configurexml.TrackSegmentXml" />
+  <tracksegment ident="T8" connect1name="A6" type1="POS_POINT" connect2name="SL2" type2="SLIP_B" mainline="no" hidden="no" class="jmri.jmrit.display.layoutEditor.configurexml.TrackSegmentXml" />
+  <tracksegment ident="T6" connect1name="SL2" type1="SLIP_C" connect2name="A4" type2="POS_POINT" mainline="no" hidden="no" class="jmri.jmrit.display.layoutEditor.configurexml.TrackSegmentXml" />
+  <tracksegment ident="T7" connect1name="SL2" type1="SLIP_D" connect2name="A7" type2="POS_POINT" mainline="no" hidden="no" class="jmri.jmrit.display.layoutEditor.configurexml.TrackSegmentXml" />
+</panel>

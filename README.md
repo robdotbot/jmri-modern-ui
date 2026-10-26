@@ -5,7 +5,7 @@ A modern, mobile-first web front end for [JMRI](https://github.com/JMRI/JMRI). I
 It has two parts:
 
 - **The web app** talks to JMRI only through JMRI's built-in **JSON/WebSocket server** (protocol v5, `ws://<host>:12080/json/`). It works with JMRI 5.x (tested against 5.6; the protocol is unchanged through 5.17).
-- **An optional add-on jar** (`addon/`) adds what that server lacks: CV programming, Logix/LogixNG, a signal's valid aspects, and building/resetting trains. It plugs into JMRI's own extension point, so the JMRI install itself is never modified.
+- **An optional add-on jar** (`addon/`) adds what that server lacks: CV programming and DecoderPro's decoder definitions, viewing and editing Logix/LogixNG, editing panels, storing the configuration, a signal's valid aspects, and building/resetting trains. It plugs into JMRI's own extension point, so the JMRI install itself is never modified.
 
 ## What's in it
 
@@ -14,13 +14,13 @@ It has two parts:
 | **Throttles** | Several throttles side by side. Roster or raw DCC address (short/long). Drag/keyboard speed slider that snaps to the decoder's step count. % or step readout. Fwd/Rev, Stop, E-Stop, 25/50/75/100% presets. Function buttons named from the roster's function labels; non-lockable ones (horn, whistle, coupler) are momentary (on only while held). Shows when another throttle shares the loco. Held throttles survive a page reload and a JMRI restart. If JMRI stops confirming a throttle's commands (see *Known JMRI issue* below), the card says so and offers **Turn track power off** and **Get a fresh throttle**. | |
 | **Roster** | Cards with the roster photo, roster-group filter, search across name/road/number/address/model, details sheet with function map, one-tap **Drive**. | |
 | **Consists** | Create an advanced consist on a short address, add locos from the roster or by address, set each loco's facing, remove locos, delete, and **Drive** the consist address. | |
-| **Panels** | Your PanelPro panels, drawn in the browser: Layout Editor track (straight, arc and bezier segments, turnouts with the selected leg, block occupancy colours) and Panel/Control Panel Editor icons and labels. Turnouts, sensors (including momentary buttons), lights, signal masts and heads are live and clickable, with the same click behaviour as JMRI's classic web panel. Fit-to-screen and zoom. | |
+| **Panels** | Your PanelPro panels, drawn in the browser: Layout Editor track (straight, arc and bezier segments, turnouts with the selected leg, single and double slips showing their route, turntables with the bridge on the lined-up ray, block occupancy colours) and Panel/Control Panel Editor icons and labels. Turnouts, slips (click either side, as in JMRI), turntable rays, sensors (including momentary buttons), lights, signal masts and heads are live and clickable, with the same click behaviour as JMRI's classic web panel. Fit-to-screen and zoom. **Edit** mode: drag icons and labels, add labels and sensor/turnout/light/signal mast/memory icons, change a label's text, delete items, and drag Layout Editor turnouts, slips, turntables and anchor points (connected track follows). | Editing |
 | **Turnouts / Routes / Sensors / Lights / Blocks** | Live state grid (tap to throw/close, set a route, toggle sensors and lights). Search, create new objects, JMRI's internal bookkeeping objects hidden by default. | |
 | **Signals** | Masts show the signal system's real aspect image; tap one to choose any valid aspect, hold it or turn it dark. Heads show a lamp (flashing ones animate) with their valid appearances. | Exact per-mast aspects (falls back to the signal system's appearance file) |
 | **Memories** | Inline-editable values. | |
-| **Operations** | **Trains**: status, route timeline with the current stop, **Build**, **Move to next stop**, **Terminate**, **Reset**, and the manifest (pick-ups and set-outs per stop). **Locations** with tracks and car counts. **Cars** and **Engines**: search everything, see location, destination and train, and move a car or engine to another location/track. | Build and reset |
-| **Programming** | Programming track or on the main (address or roster loco). **Read decoder** identifies the maker and possible models from CV7/CV8 using JMRI's own decoder index, and shows the active address. Change address (short or long; CV1/17/18/29 computed for you). CV29 as switches. Read/write any CV with a bit view. Log of every operation. | Yes |
-| **Logic** | Every Logix and LogixNG: enable or disable it, see what it does (conditionals with their variables and actions; the LogixNG tree), and run a ConditionalNG now. | Yes |
+| **Operations** | **Trains**: status, route timeline with the current stop, **Build**, **Move to next stop**, **Terminate**, **Reset**, and the manifest (pick-ups and set-outs per stop). **Switch lists**: per location, every built train that stops there in time order with its pick-ups and set-outs by track, trains not yet built, and the cars on hand; printable. **Locations** with tracks and car counts. **Cars** and **Engines**: search everything, see location, destination and train, and move a car or engine to another location/track. | Build and reset |
+| **Programming** | Programming track or on the main (address or roster loco). **Quick setup**: **Read decoder** identifies the maker and possible models from CV7/CV8 using JMRI's own decoder index, and shows the active address. Change address (short or long; CV1/17/18/29 computed for you). CV29 as switches. Read/write any CV with a bit view. **Decoder settings**: DecoderPro's panes for a roster loco's decoder (or one picked by maker and model, optionally detected): Basic, Motor, Speed Table, Function Map, Lights, Sound and the decoder's own panes, with named settings (lists, numbers, sliders, check boxes, split and indexed CVs, speed tables), read/write a pane or just the changes, and **Save to roster** like DecoderPro. Log of every operation. | Yes |
+| **Logic** | Every Logix and LogixNG: enable or disable it, see what it does, and run a ConditionalNG now. Create, rename and delete them. Logix: add and delete conditionals and edit their conditions (sensors, turnouts, lights, memories, signals, other conditionals, fast clock), how they combine (all AND, all OR or an expression such as `R1 and (R2 or not R3)`) and their actions. LogixNG: add and delete ConditionalNGs and edit the tree: add an action or expression to an empty socket (If/then/else, Many, set turnout/sensor/light/memory/signal mast, delay; sensor/turnout/light/signal mast conditions, And, Or, Not), change an item's bean, state and other settings, disable or remove it. **Store…** saves the changes, as PanelPro's *Store tables and panels* does. | Yes |
 | **Top bar** | Connection status, fast clock, track power toggle, **STOP** (e-stops every throttle on this device), light/dark theme. | |
 | **Settings** | JMRI server address, per-connection track power, fast clock run/rate, JMRI and protocol versions. | |
 
@@ -167,23 +167,30 @@ npm run build && npm run build:addon
   -cp "jmri.jar:lib/*:$OLDPWD/addon/dist/jmri-modern-ui-addon.jar" apps.JmriFaceless) &
 npm run deploy -- /tmp/TestRailroad.jmri --settings=/tmp
 npx playwright install chromium
-npm run test:e2e           # tests/e2e.mjs (40 checks) + tests/e2e-features.mjs (30 checks)
+npm run test:e2e           # tests/e2e.mjs (40 checks) + tests/e2e-features.mjs (55 checks)
 ```
+
+`tests/e2e-panel-edit.mjs` (10 checks) needs panels JMRI really has open, which takes a JMRI with a screen: run PanelPro on the same profile instead of JmriFaceless, then `npm run test:e2e:panels`. Without open panels it reports SKIP.
 
 Every UI action is verified independently, never through the UI under test:
 - Throttle speed, direction and functions, through a second WebSocket throttle sharing the loco.
-- CVs, through a separate programmer client.
+- CVs, through a separate programmer client (including an indexed CV programmed through a decoder definition's facades).
+- Named decoder settings, by reading the CVs they map to; Save to roster, by reading the roster entry back.
+- Logix and LogixNG built in the UI, by changing their sensor through REST and checking the turnout they drive; Store, by reading the file JMRI wrote.
+- Panel edits, in the XML JMRI's panel servlet produces from the live panel.
+- Switch lists, against each train's manifest.
 - Turnouts, sensors, lights, memories, power, signal aspects, held state, Logix/LogixNG enable state, consist members and directions, train build/move/terminate and car locations, through JMRI's REST API.
 
 The tests also cover:
 - reload persistence and live pushes of changes made elsewhere;
 - block occupancy colour;
+- slips and turntables (route and bridge drawn from their turnouts, clicks set the right turnouts);
 - a 390 px phone layout on every screen;
 - the throttle safety net: with JMRI's throttle replies cut off, the card must warn, its power-off button must work, and a stalled acquisition must be explained.
 
 With the same JMRI running, `node scripts/screenshots.mjs` retakes the README screenshots into `docs/screenshots/`. It sets up some state (turnout and sensor states, a consist, a built train, decoder CVs) and removes the consist and resets the train afterwards.
 
-Headless JMRI can't open panels. The panel tests therefore serve the panel XML captured from PanelPro (`tests/fixtures/panels/`) in place of `/panel`, while every turnout, sensor and signal they click is live JMRI.
+Headless JMRI can't open panels. The panel tests therefore serve the panel XML captured from PanelPro (`tests/fixtures/panels/`) in place of `/panel`, while every turnout, sensor and signal they click is live JMRI. `Layout-Yard Throat.xml` is made by hand in the servlet's format to cover slips and a turntable.
 
 `tests/e2e-noaddon.mjs` checks the app with JMRI started *without* the add-on:
 - Programming and Logic explain how to install it.
@@ -197,9 +204,11 @@ src/jmri/protocol.ts   JSON protocol v5 types and state constants (from JMRI's J
 src/jmri/client.ts     WebSocket client: connect/heartbeat/reconnect, subscriptions, store, requests, throttles
 src/jmri/panel.ts      Parser for /panel XML (Layout Editor geometry, positionable icons)
 src/jmri/decoders.ts   Decoder identification from JMRI's decoder index; CV29/long-address helpers
+src/jmri/decoderDef.ts DecoderPro decoder definitions and panes: variables, masks, split CVs, qualifiers, pane merging
 src/state.tsx          React bindings (useSyncExternalStore), routing, theme, persistence
 src/views/*            Screens
-addon/                 JMRI add-on: JSON types programmer, logix, logixng, signalAspects, trainAction
+addon/                 JMRI add-on: JSON types programmer, logix, logixng, signalAspects, trainAction,
+                       decoderDefinition, rosterCvs, storeConfig, panelEdit
 scripts/deploy.mjs     Installs the app and add-on
 scripts/screenshots.mjs  Retakes the README screenshots
 ```
@@ -208,8 +217,12 @@ scripts/screenshots.mjs  Retakes the README screenshots
 
 | Type | Messages |
 |---|---|
-| `programmer` | `get` returns the programmer's status and modes. `post {op:"read"\|"write", cv, value?, mode?, address?, isLongAddress?}` answers with `{op, cv, value, ok, status, message, mode}`, tagged with your request `id`, once the decoder replies. With `address` it programs on the main. A second request while one is running gets a 409 error. |
-| `logix`, `logixng` | `list` and `get` return each Logix/LogixNG with its conditionals or ConditionalNG trees. `post {name, enabled}` enables or disables one; for a ConditionalNG, `post {name, execute:true}` runs it. A `list` subscribes you to enable/disable changes. |
+| `programmer` | `get` returns the programmer's status and modes. `post {op:"read"\|"write", cv, value?, mode?, address?, isLongAddress?, decoderFile?}` answers with `{op, cv, value, ok, status, message, mode}`, tagged with your request `id`, once the decoder replies. With `address` it programs on the main. With `decoderFile` it programs through the facades that decoder definition declares, as DecoderPro does (needed for indexed CVs such as `16.2.257`). A second request while one is running gets a 409 error. |
+| `decoderDefinition` | `get {file}` returns a decoder definition from `xml/decoders`, `get {programmer}` a programmer (pane) file (`""` for DecoderPro's default), as `{xml}` with XIncludes resolved by JMRI. |
+| `rosterCvs` | `get {name}` returns a roster entry's decoder family/model, its definition file and the CV values DecoderPro stored. `post {name, values:{cv:{value,state}}, decoderFamily?, decoderModel?}` stores them in the roster entry (a backup is kept). |
+| `logix`, `logixng` | `list` and `get` return each Logix/LogixNG with its conditionals (variables and actions as editable fields) or ConditionalNGs (text tree plus a node tree with each item's editable settings). `post {name, enabled}` enables or disables one; for a ConditionalNG, `post {name, execute:true}` runs it. `post {op, ...}` edits: Logix `create`, `rename`, `delete`, `addConditional`, `deleteConditional`, `updateConditional`; LogixNG `create`, `rename`, `delete`, `addConditionalNG`, `deleteConditionalNG`, and on a ConditionalNG's tree (`path` of socket indexes) `add`, `edit`, `remove`, `setEnabled`. A `list` subscribes you to enable/disable changes. |
+| `storeConfig` | `get` lists the configuration files JMRI loaded; `post {file}` stores tables and panels to one of them, like PanelPro's *Store*. |
+| `panelEdit` | `post {name: panel title, op}`: `move`, `delete` and `text` (with `target {tag, x, y, bean?}` as the panel servlet describes the item), `add` (`kind` label/sensor/turnout/light/signalMast/memory, `bean` or `text`, `x`, `y`), `moveTrack` (`ident`, `x`, `y`). Needs panels open in a JMRI with a screen. |
 | `signalAspects` | `get {name}` returns a mast's valid aspects with their image URLs, plus its held and dark images, or a head's valid appearances. |
 | `trainAction` | `post {name:<train id>, action:"build"\|"reset"\|"move"\|"terminate"}` |
 | `modernUiAddon` | `get` returns `{version}`, so the app can tell the add-on is installed. |
@@ -240,9 +253,14 @@ This app can't fix it, but it makes it visible:
 - Every command that changes something must be confirmed by JMRI within about 2.5 s. If not, the throttle card turns red, says its Stop may not work, and offers **Turn track power off** and **Get a fresh throttle**.
 - If a loco can't be acquired at all, the card says so after a few seconds and suggests turning power off and restarting JMRI.
 
+## Edits and storing
+
+Logic and panel edits change JMRI straight away (PanelPro and every browser see them), but like edits in PanelPro they are only kept if the configuration is stored. **Store…** on the Logic and Panels screens does what PanelPro's *Store tables and panels* does, to one of the files JMRI loaded at start up; it writes everything JMRI has loaded into that file and keeps a backup of the old one. Until then the screens show *Not stored yet*.
+
 ## Not yet
 
-- Editing panels or Logix/LogixNG. Both are shown and operable here; build and change them in PanelPro.
-- DecoderPro's decoder-definition panes (sound, lighting, speed tables by name). Programming here works at the CV level, plus decoder identification, address and CV29.
-- Signal mast logic, warrants, dispatcher, and switch lists. Train manifests are covered.
-- Slip, turntable and traverser drawing on Layout Editor panels.
+- Signal mast logic, warrants and dispatcher.
+- Traversers (new in JMRI 5.13) aren't drawn on Layout Editor panels.
+- Panel editing covers moving, adding (labels and the common icons, with PanelPro's default look) and deleting items, label text, and moving Layout Editor track. Drawing new track, icon sets, rotation and scaling, and Switchboards still need PanelPro.
+- LogixNG items other than the common ones listed above can be changed, disabled and removed here but not added; Logix condition and action types other than those listed are kept as they are and edited in PanelPro.
+- Decoder settings: DecoderPro's Roster, Function Labels and Print panes, and a few rarely used value types (text, date/time, indexed pairs), which show their CV numbers instead.
