@@ -118,7 +118,18 @@ A LogixNG's tree:
   <img src="docs/screenshots/phone-more.png" width="260" alt="The More menu on a phone">
 </p>
 
-## Use it with your JMRI
+## Install
+
+Download the installer for your computer from the [latest release](https://github.com/robdotbot/jmri-modern-ui/releases/latest), quit JMRI and run it. Both installers contain the app and the add-on.
+
+- **Windows** (`JMRI-Modern-UI-<version>-windows-setup.exe`): puts the app in `%USERPROFILE%\JMRI\web\modern` and the add-on in JMRI's `lib` folder (it finds JMRI in Program Files, or asks). Remove it from **Settings → Apps**. SmartScreen may warn about an unrecognised app: **More info → Run anyway**.
+- **Mac** (`JMRI-Modern-UI-<version>-macos.pkg`): puts the app in `~/Library/Preferences/JMRI/web/modern` and the add-on next to it, loaded through `jmri.conf`. The package isn't signed, so open it the first time with **right-click → Open**. Remove it with `sudo "/Library/Application Support/JMRI Modern UI/uninstall.sh"`.
+
+The app goes in the JMRI settings folder, which JMRI's web server serves for every profile, so it survives JMRI upgrades. The Windows add-on lives in JMRI's `lib` folder, so run the installer again after upgrading JMRI. Then follow steps 1, 2 and 4 below.
+
+To make a release: set the version in `package.json`, then push a matching tag (`git tag v0.3.0 && git push origin v0.3.0`). `.github/workflows/release.yml` builds the app, compiles the add-on against JMRI 5.6, builds both installers and publishes them as a GitHub release. On pull requests it builds the installers as workflow artifacts without publishing.
+
+## Use it with your JMRI (from source)
 
 1. In JMRI (PanelPro/DecoderPro): **Preferences → Start Up → Add → Perform action → Start Web Server**. Restart JMRI.
 2. To let browsers switch track power: **Preferences → Web Server**, untick **"Web clients can't change track power"**.
