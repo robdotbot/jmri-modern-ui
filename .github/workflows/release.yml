@@ -8,7 +8,6 @@ name: Release
 on:
   push:
     tags: ['v*']
-    branches: [claude/friendly-curie-mvcxyh]
   pull_request:
   workflow_dispatch:
 
