@@ -122,12 +122,35 @@ A LogixNG's tree:
 
 Download the installer for your computer from the [latest release](https://github.com/robdotbot/jmri-modern-ui/releases/latest), quit JMRI and run it. Both installers contain the app and the add-on.
 
-- **Windows** (`JMRI-Modern-UI-<version>-windows-setup.exe`): puts the app in `%USERPROFILE%\JMRI\web\modern` and the add-on in JMRI's `lib` folder (it finds JMRI in Program Files, or asks). Remove it from **Settings → Apps**. SmartScreen may warn about an unrecognised app: **More info → Run anyway**.
-- **Mac** (`JMRI-Modern-UI-<version>-macos.pkg`): puts the app in `~/Library/Preferences/JMRI/web/modern` and the add-on next to it, loaded through `jmri.conf`. The package isn't signed, so open it the first time with **right-click → Open**. Remove it with `sudo "/Library/Application Support/JMRI Modern UI/uninstall.sh"`.
+- **Windows** (`JMRI-Modern-UI-<version>-windows-setup.exe`): puts the app in `%USERPROFILE%\JMRI\web\modern` and the add-on in JMRI's `lib` folder (it finds JMRI in Program Files, or asks). Remove it from **Settings → Apps**. If the release's installer is unsigned, SmartScreen warns about an unrecognised app: **More info → Run anyway**.
+- **Mac** (`JMRI-Modern-UI-<version>-macos.pkg`): puts the app in `~/Library/Preferences/JMRI/web/modern` and the add-on next to it, loaded through `jmri.conf`. If the release's package isn't notarized, open it the first time with **right-click → Open**. Remove it with `sudo "/Library/Application Support/JMRI Modern UI/uninstall.sh"`.
 
 The app goes in the JMRI settings folder, which JMRI's web server serves for every profile, so it survives JMRI upgrades. The Windows add-on lives in JMRI's `lib` folder, so run the installer again after upgrading JMRI. Then follow steps 1, 2 and 4 below.
 
 To make a release: set the version in `package.json`, then push a matching tag (`git tag v0.3.0 && git push origin v0.3.0`). `.github/workflows/release.yml` builds the app, compiles the add-on against JMRI 5.6, builds both installers and publishes them as a GitHub release. On pull requests it builds the installers as workflow artifacts without publishing.
+
+### Code signing
+
+The workflow signs the installers when these repository secrets (**Settings → Secrets and variables → Actions**) are set, and builds them unsigned when they aren't. The release notes say which.
+
+**Mac** (needs an [Apple Developer Program](https://developer.apple.com/programs/) membership):
+
+| Secret | Value |
+|---|---|
+| `MACOS_INSTALLER_P12_BASE64` | A **Developer ID Installer** certificate with its private key: create it in your developer account (Certificates → +), install it, export it from Keychain Access as `.p12`, then `base64 -i installer.p12 \| pbcopy`. |
+| `MACOS_INSTALLER_P12_PASSWORD` | The password you gave the `.p12`. |
+| `APPLE_ID` | The Apple ID of the developer account. |
+| `APPLE_APP_PASSWORD` | An [app-specific password](https://support.apple.com/102654) for that Apple ID. |
+| `APPLE_TEAM_ID` | Your team ID (Membership details in the developer account). |
+
+The package is signed, sent to Apple's notary service, and the notarization ticket is stapled to it, so Gatekeeper opens it without a warning. With only the first two secrets it is signed but not notarized, which Gatekeeper still blocks.
+
+**Windows**, either of:
+
+- **[Azure Trusted Signing](https://learn.microsoft.com/azure/trusted-signing/)** (Microsoft's signing service, about $10 a month). Create a Trusted Signing account and a public-trust certificate profile, and an app registration with a client secret that has the *Trusted Signing Certificate Profile Signer* role on the account. Secrets `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`; variables (same page, **Variables** tab) `TRUSTED_SIGNING_ENDPOINT` (e.g. `eus.codesigning.azure.net`), `TRUSTED_SIGNING_ACCOUNT`, `TRUSTED_SIGNING_PROFILE`.
+- **A code-signing certificate in a `.pfx` file**: secrets `WINDOWS_CERT_PFX_BASE64` (`base64 -w0 cert.pfx`) and `WINDOWS_CERT_PASSWORD`. Certificates issued since mid-2023 are kept on a hardware token or a cloud HSM and can't be exported to a `.pfx`; for those, use the provider's signing service or Trusted Signing.
+
+The installer and the uninstaller inside it are signed with [jsign](https://ebourg.github.io/jsign/) from `installer/windows/sign.sh`, timestamped, and checked with Windows' own `Get-AuthenticodeSignature`. SmartScreen can still warn about a newly signed installer until it has been downloaded enough to build a reputation.
 
 ## Use it with your JMRI (from source)
 

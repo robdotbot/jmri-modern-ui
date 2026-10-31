@@ -3,6 +3,9 @@
 #   - JMRI-Modern-UI-<version>-macos.pkg          (built on macOS)
 # Pushing a tag v<version> (matching package.json) also publishes them as a GitHub release:
 #   git tag v0.3.0 && git push origin v0.3.0
+#
+# Code signing is used when its secrets are set (see "Code signing" in README.md); without them the
+# installers are built unsigned.
 name: Release
 
 on:
@@ -17,12 +20,16 @@ permissions:
 env:
   # The add-on is compiled against this JMRI release (the oldest one the app is tested with).
   JMRI_VERSION: v5.6
+  # jsign signs the Windows installer from Linux.
+  JSIGN_VERSION: '7.1'
+  JSIGN_SHA256: cfb48b07fdd2ee199bfc9e71d8dccdde67a799c4793602e446c7a101be62b3c4
 
 jobs:
   build:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
+      windows-signed: ${{ steps.windows.outputs.signed }}
     steps:
       - uses: actions/checkout@v4
 
@@ -64,16 +71,55 @@ jobs:
       - name: Build the add-on
         run: npm run build:addon
 
-      - name: Build the Windows installer
+      - id: windows
+        name: Build the Windows installer
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          # Azure Trusted Signing (Artifact Signing), through an app registration with the
+          # "Trusted Signing Certificate Profile Signer" role.
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          TRUSTED_SIGNING_ENDPOINT: ${{ vars.TRUSTED_SIGNING_ENDPOINT }}
+          TRUSTED_SIGNING_ACCOUNT: ${{ vars.TRUSTED_SIGNING_ACCOUNT }}
+          TRUSTED_SIGNING_PROFILE: ${{ vars.TRUSTED_SIGNING_PROFILE }}
+          # Or a certificate in a .pfx file, base64-encoded.
+          WINDOWS_CERT_PFX_BASE64: ${{ secrets.WINDOWS_CERT_PFX_BASE64 }}
+          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq nsis
+          sign=()
+          if [ -n "$AZURE_CLIENT_SECRET" ]; then
+            TRUSTED_SIGNING_TOKEN=$(curl -sSf -X POST "https://login.microsoftonline.com/$AZURE_TENANT_ID/oauth2/v2.0/token" \
+              --data-urlencode "client_id=$AZURE_CLIENT_ID" --data-urlencode "client_secret=$AZURE_CLIENT_SECRET" \
+              --data-urlencode grant_type=client_credentials --data-urlencode "scope=https://codesigning.azure.net/.default" \
+              | jq -r .access_token)
+            echo "::add-mask::$TRUSTED_SIGNING_TOKEN"
+            export TRUSTED_SIGNING_TOKEN
+            echo "Signing with Azure Trusted Signing ($TRUSTED_SIGNING_ACCOUNT/$TRUSTED_SIGNING_PROFILE)"
+          elif [ -n "$WINDOWS_CERT_PFX_BASE64" ]; then
+            export WINDOWS_CERT_FILE="$RUNNER_TEMP/windows-cert.pfx"
+            trap 'rm -f "$WINDOWS_CERT_FILE"' EXIT
+            echo "$WINDOWS_CERT_PFX_BASE64" | base64 -d > "$WINDOWS_CERT_FILE"
+            echo "Signing with the certificate in WINDOWS_CERT_PFX_BASE64"
+          else
+            echo "::warning::No Windows signing secrets; the Windows installer is unsigned."
+          fi
+          if [ -n "${TRUSTED_SIGNING_TOKEN:-}${WINDOWS_CERT_FILE:-}" ]; then
+            export JSIGN_JAR="$RUNNER_TEMP/jsign.jar"
+            curl -sSfL -o "$JSIGN_JAR" "https://repo1.maven.org/maven2/net/jsign/jsign/$JSIGN_VERSION/jsign-$JSIGN_VERSION.jar"
+            echo "$JSIGN_SHA256  $JSIGN_JAR" | sha256sum -c -
+            sign=(-DSIGN="$PWD/installer/windows/sign.sh")
+          fi
           mkdir -p out
           makensis -V2 \
-            -DVERSION=${{ steps.version.outputs.version }} \
+            -DVERSION="$VERSION" \
             -DAPP_DIR="$PWD/dist" \
             -DADDON_JAR="$PWD/addon/dist/jmri-modern-ui-addon.jar" \
-            -DOUT_FILE="$PWD/out/JMRI-Modern-UI-${{ steps.version.outputs.version }}-windows-setup.exe" \
+            -DOUT_FILE="$PWD/out/JMRI-Modern-UI-$VERSION-windows-setup.exe" \
+            ${sign[@]+"${sign[@]}"} \
             installer/windows/installer.nsi
+          echo "signed=$([ ${#sign[@]} -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -87,9 +133,36 @@ jobs:
           name: windows-installer
           path: out/*.exe
 
+  # Checks the Windows signature the way Windows does.
+  verify-windows:
+    needs: build
+    if: needs.build.outputs.windows-signed == 'true'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-installer
+      - name: Check the signature
+        shell: pwsh
+        run: |
+          $sig = Get-AuthenticodeSignature (Get-ChildItem *.exe).FullName
+          $sig | Format-List Status, StatusMessage, SignerCertificate, TimeStamperCertificate
+          if ($sig.Status -ne 'Valid') { throw "Signature status: $($sig.Status)" }
+
   macos:
     needs: build
     runs-on: macos-latest
+    outputs:
+      notarized: ${{ steps.pkg.outputs.notarized }}
+    env:
+      # A "Developer ID Installer" certificate and its private key, exported from Keychain Access
+      # as .p12 and base64-encoded.
+      MACOS_INSTALLER_P12_BASE64: ${{ secrets.MACOS_INSTALLER_P12_BASE64 }}
+      MACOS_INSTALLER_P12_PASSWORD: ${{ secrets.MACOS_INSTALLER_P12_PASSWORD }}
+      # Notarization: an Apple ID with an app-specific password, and the developer team ID.
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
     steps:
       - uses: actions/checkout@v4
 
@@ -98,13 +171,65 @@ jobs:
           name: app
           path: app
 
-      - name: Build the macOS installer
+      - name: Import the signing certificate
+        if: env.MACOS_INSTALLER_P12_BASE64 != ''
         run: |
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          password=$(uuidgen)
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 3600 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          echo "$MACOS_INSTALLER_P12_BASE64" | base64 -D > "$RUNNER_TEMP/installer.p12"
+          security import "$RUNNER_TEMP/installer.p12" -k "$keychain" -P "$MACOS_INSTALLER_P12_PASSWORD" \
+            -T /usr/bin/productbuild -T /usr/bin/productsign
+          rm -f "$RUNNER_TEMP/installer.p12"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$keychain" >/dev/null
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          identity=$(security find-identity -v -p basic "$keychain" | grep -o '"Developer ID Installer: [^"]*"' | head -1 | tr -d '"')
+          if [ -z "$identity" ]; then
+            echo "::error::No \"Developer ID Installer\" identity in MACOS_INSTALLER_P12_BASE64"
+            exit 1
+          fi
+          echo "Signing as $identity"
+          echo "MACOS_INSTALLER_IDENTITY=$identity" >> "$GITHUB_ENV"
+          echo "MACOS_KEYCHAIN=$keychain" >> "$GITHUB_ENV"
+
+      - id: pkg
+        name: Build the macOS installer
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          pkg="out/JMRI-Modern-UI-$VERSION-macos.pkg"
           mkdir -p out
-          installer/macos/build-pkg.sh "${{ needs.build.outputs.version }}" app/dist \
-            "out/JMRI-Modern-UI-${{ needs.build.outputs.version }}-macos.pkg" \
-            app/addon/dist/jmri-modern-ui-addon.jar
-          pkgutil --payload-files "out/JMRI-Modern-UI-${{ needs.build.outputs.version }}-macos.pkg" | head -20
+          installer/macos/build-pkg.sh "$VERSION" app/dist "$pkg" app/addon/dist/jmri-modern-ui-addon.jar
+          pkgutil --payload-files "$pkg" | head -20
+          notarized=false
+          if [ -z "${MACOS_INSTALLER_IDENTITY:-}" ]; then
+            echo "::warning::No macOS signing secrets; the macOS installer is unsigned."
+          else
+            pkgutil --check-signature "$pkg"
+            if [ -z "$APPLE_ID" ] || [ -z "$APPLE_APP_PASSWORD" ] || [ -z "$APPLE_TEAM_ID" ]; then
+              echo "::warning::No notarization secrets; the macOS installer is signed but not notarized, so Gatekeeper still blocks it."
+            else
+              result=$(xcrun notarytool submit "$pkg" --apple-id "$APPLE_ID" --password "$APPLE_APP_PASSWORD" \
+                --team-id "$APPLE_TEAM_ID" --wait --timeout 30m --output-format json)
+              echo "$result"
+              if [ "$(echo "$result" | jq -r .status)" != Accepted ]; then
+                xcrun notarytool log "$(echo "$result" | jq -r .id)" --apple-id "$APPLE_ID" \
+                  --password "$APPLE_APP_PASSWORD" --team-id "$APPLE_TEAM_ID" || true
+                echo "::error::Notarization failed"
+                exit 1
+              fi
+              xcrun stapler staple "$pkg"
+              spctl --assess --type install -vv "$pkg"
+              notarized=true
+            fi
+          fi
+          echo "notarized=$notarized" >> "$GITHUB_OUTPUT"
+
+      - name: Remove the signing keychain
+        if: always() && env.MACOS_KEYCHAIN != ''
+        run: security delete-keychain "$MACOS_KEYCHAIN" || true
 
       - uses: actions/upload-artifact@v4
         with:
@@ -112,8 +237,12 @@ jobs:
           path: out/*.pkg
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build, macos]
+    needs: [build, verify-windows, macos]
+    # verify-windows is skipped when the installer isn't signed, which would skip this job by default.
+    if: >-
+      always() && startsWith(github.ref, 'refs/tags/v') &&
+      needs.build.result == 'success' && needs.macos.result == 'success' &&
+      (needs.verify-windows.result == 'success' || needs.verify-windows.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -127,14 +256,26 @@ jobs:
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
+          WINDOWS_SIGNED: ${{ needs.build.outputs.windows-signed }}
+          MACOS_NOTARIZED: ${{ needs.macos.outputs.notarized }}
         run: |
-          cat > notes.md <<'NOTES'
+          if [ "$WINDOWS_SIGNED" = true ]; then
+            windows='It asks for the JMRI folder (found automatically when JMRI is in Program Files).'
+          else
+            windows='It asks for the JMRI folder (found automatically when JMRI is in Program Files). The installer isn'"'"'t signed, so Windows SmartScreen may warn that it is unrecognised: choose **More info → Run anyway**.'
+          fi
+          if [ "$MACOS_NOTARIZED" = true ]; then
+            mac='Double-click it to install.'
+          else
+            mac='The package isn'"'"'t signed by an identified developer, so the first time open it with **right-click → Open** (or **System Settings → Privacy & Security → Open Anyway**).'
+          fi
+          cat > notes.md <<NOTES
           ## Install
 
           Quit JMRI first, then run the installer for your computer:
 
-          - **Windows:** `JMRI-Modern-UI-*-windows-setup.exe`. It asks for the JMRI folder (found automatically when JMRI is in Program Files). Windows SmartScreen may warn that the installer is unrecognised: choose **More info → Run anyway**.
-          - **Mac:** `JMRI-Modern-UI-*-macos.pkg`. The package isn't signed by an identified developer, so the first time open it with **right-click → Open** (or **System Settings → Privacy & Security → Open Anyway**).
+          - **Windows:** \`JMRI-Modern-UI-*-windows-setup.exe\`. $windows
+          - **Mac:** \`JMRI-Modern-UI-*-macos.pkg\`. $mac
 
           Then in JMRI: **Preferences → Start Up → Add → Perform action → Start Web Server**, restart JMRI and open **http://&lt;jmri-computer&gt;:12080/web/modern/** on any phone, tablet or computer on the same network.
           NOTES

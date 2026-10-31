@@ -1,6 +1,8 @@
 #!/bin/bash
 # Builds the macOS installer package (run on a Mac; used by .github/workflows/release.yml).
 #   installer/macos/build-pkg.sh <version> <app dir> <out.pkg> [add-on jar]
+# With MACOS_INSTALLER_IDENTITY set (a "Developer ID Installer: …" identity in the keychain, or
+# MACOS_KEYCHAIN), the package is signed. Notarizing it is a separate step (see release.yml).
 set -euo pipefail
 version=$1 app=$2 out=$3 jar=${4:-}
 here=$(cd "$(dirname "$0")" && pwd)
@@ -32,5 +34,10 @@ cat > "$work/distribution.xml" <<XML
   <pkg-ref id="org.jmri.modernui" version="$version">component.pkg</pkg-ref>
 </installer-gui-script>
 XML
-productbuild --distribution "$work/distribution.xml" --resources "$work/resources" --package-path "$work" "$out"
+sign=()
+if [ -n "${MACOS_INSTALLER_IDENTITY:-}" ]; then
+  sign=(--sign "$MACOS_INSTALLER_IDENTITY" --timestamp)
+  if [ -n "${MACOS_KEYCHAIN:-}" ]; then sign+=(--keychain "$MACOS_KEYCHAIN"); fi
+fi
+productbuild --distribution "$work/distribution.xml" --resources "$work/resources" --package-path "$work" ${sign[@]+"${sign[@]}"} "$out"
 echo "Built $out"

@@ -6,6 +6,8 @@
 ;     serves at /web/modern/ for every profile, and which survives JMRI upgrades)
 ;   - the add-on jar into <JMRI>\lib (the Windows launcher only loads extra jars from there)
 ; ADDON_JAR is optional; without it only the web app is installed.
+; With -DSIGN=<path to sign.sh>, the installer and the uninstaller inside it are code-signed
+; (sign.sh reads its certificate settings from the environment).
 
 Unicode true
 !include "MUI2.nsh"
@@ -31,6 +33,11 @@ OutFile "${OUT_FILE}"
 RequestExecutionLevel admin
 InstallDir "$PROGRAMFILES64\JMRI"
 SetCompressor /SOLID lzma
+
+!ifdef SIGN
+  !finalize 'bash "${SIGN}" "%1"' = 0
+  !uninstfinalize 'bash "${SIGN}" "%1"' = 0
+!endif
 
 VIProductVersion "${VERSION}.0"
 VIAddVersionKey "ProductName" "${PRODUCT}"
