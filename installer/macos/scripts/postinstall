@@ -1,0 +1,72 @@
+#!/bin/bash
+# Runs as root after the package's files are in /Library/Application Support/JMRI Modern UI.
+# Installs them for the logged-in user, the same way `npm run deploy -- --configure` does:
+#   - the app into ~/Library/Preferences/JMRI/web/modern (JMRI's settings folder; its web server serves
+#     that at /web/modern/ for every profile, and it survives JMRI upgrades)
+#   - the add-on jar into the settings folder, loaded through jmri.conf's default_options
+#     (or, if that path contains spaces, which the launcher can't handle, into /Applications/JMRI/lib)
+set -u
+SRC="/Library/Application Support/JMRI Modern UI"
+JAR_NAME=jmri-modern-ui-addon.jar
+
+user=$(stat -f%Su /dev/console 2>/dev/null || true)
+case "$user" in ''|root|loginwindow|_mbsetupuser) user="${USER:-}" ;; esac
+if [ -z "$user" ] || [ "$user" = root ]; then
+  echo "JMRI Modern UI: no logged-in user to install for." >&2
+  exit 1
+fi
+home=$(dscl . -read "/Users/$user" NFSHomeDirectory 2>/dev/null | sed 's/^NFSHomeDirectory: *//')
+[ -n "$home" ] || home="/Users/$user"
+settings="$home/Library/Preferences/JMRI"
+as_user() { sudo -u "$user" "$@"; }
+
+as_user mkdir -p "$settings/web" || exit 1
+as_user rm -rf "$settings/web/modern"
+as_user cp -R "$SRC/web/modern" "$settings/web/modern" || exit 1
+echo "$user" > "$SRC/installed-for"
+echo "JMRI Modern UI: app installed in $settings/web/modern"
+
+# An app that `npm run deploy` put in a profile would be served instead of this one for that profile.
+for p in "$settings"/*.jmri; do
+  [ -f "$p/web/modern/index.html" ] && echo "Note: $p/web/modern is an older copy that JMRI serves instead of this one; delete it to use this version."
+done
+
+[ -f "$SRC/$JAR_NAME" ] || exit 0
+jar="$settings/$JAR_NAME"
+case "$jar" in
+  *[[:space:]]*)
+    if [ -d /Applications/JMRI/lib ]; then
+      cp "$SRC/$JAR_NAME" /Applications/JMRI/lib/ && echo "/Applications/JMRI/lib/$JAR_NAME" > "$SRC/jar-in-lib"
+      echo "JMRI Modern UI: add-on installed in /Applications/JMRI/lib (reinstall after upgrading JMRI)"
+    else
+      echo "JMRI Modern UI: JMRI not found in /Applications/JMRI; copy $SRC/$JAR_NAME into JMRI's lib folder." >&2
+    fi
+    exit 0
+    ;;
+esac
+as_user cp "$SRC/$JAR_NAME" "$jar" || exit 1
+
+conf="$settings/jmri.conf"
+option="--cp:a=$jar"
+if [ -f "$conf" ] && grep -qF -- "$jar" "$conf"; then
+  echo "JMRI Modern UI: jmri.conf already loads the add-on"
+  exit 0
+fi
+tmp=$(mktemp)
+if [ -f "$conf" ] && grep -q '^default_options="' "$conf"; then
+  awk -v opt="$option" '
+    !done && /^default_options="/ {
+      sub(/^default_options="/, ""); sub(/"[[:space:]]*$/, "")
+      line = $0 == "" ? opt : $0 " " opt
+      print "default_options=\"" line "\""; done = 1; next
+    }
+    { print }' "$conf" > "$tmp"
+else
+  { [ -f "$conf" ] && cat "$conf" && [ -n "$(tail -c1 "$conf")" ] && echo
+    echo "default_options=\"$option\""; } > "$tmp"
+fi
+[ -f "$conf" ] && as_user cp "$conf" "$conf.bak"
+as_user cp "$tmp" "$conf"
+rm -f "$tmp"
+echo "JMRI Modern UI: add-on installed in $jar and loaded through $conf"
+exit 0

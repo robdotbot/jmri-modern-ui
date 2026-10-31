@@ -1,0 +1,142 @@
+# Builds the installers:
+#   - JMRI-Modern-UI-<version>-windows-setup.exe  (NSIS, built on Linux)
+#   - JMRI-Modern-UI-<version>-macos.pkg          (built on macOS)
+# Pushing a tag v<version> (matching package.json) also publishes them as a GitHub release:
+#   git tag v0.3.0 && git push origin v0.3.0
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # The add-on is compiled against this JMRI release (the oldest one the app is tested with).
+  JMRI_VERSION: v5.6
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: version
+        name: Version
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [[ "$GITHUB_REF" == refs/tags/v* && "${GITHUB_REF#refs/tags/v}" != "$version" ]]; then
+            echo "::error::Tag ${GITHUB_REF#refs/tags/} doesn't match package.json version $version"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Build the app
+        run: |
+          npm ci
+          npm run build
+          npm run lint
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Download JMRI ${{ env.JMRI_VERSION }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/jmri"
+          gh release download "$JMRI_VERSION" --repo JMRI/JMRI --pattern '*.tgz' --dir "$RUNNER_TEMP/jmri"
+          tar -xzf "$RUNNER_TEMP"/jmri/*.tgz -C "$RUNNER_TEMP/jmri"
+          echo "JMRI_HOME=$(dirname "$(find "$RUNNER_TEMP/jmri" -maxdepth 2 -name jmri.jar | head -1)")" >> "$GITHUB_ENV"
+
+      - name: Build the add-on
+        run: npm run build:addon
+
+      - name: Build the Windows installer
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq nsis
+          mkdir -p out
+          makensis -V2 \
+            -DVERSION=${{ steps.version.outputs.version }} \
+            -DAPP_DIR="$PWD/dist" \
+            -DADDON_JAR="$PWD/addon/dist/jmri-modern-ui-addon.jar" \
+            -DOUT_FILE="$PWD/out/JMRI-Modern-UI-${{ steps.version.outputs.version }}-windows-setup.exe" \
+            installer/windows/installer.nsi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app
+          path: |
+            dist
+            addon/dist/jmri-modern-ui-addon.jar
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: out/*.exe
+
+  macos:
+    needs: build
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: app
+          path: app
+
+      - name: Build the macOS installer
+        run: |
+          mkdir -p out
+          installer/macos/build-pkg.sh "${{ needs.build.outputs.version }}" app/dist \
+            "out/JMRI-Modern-UI-${{ needs.build.outputs.version }}-macos.pkg" \
+            app/addon/dist/jmri-modern-ui-addon.jar
+          pkgutil --payload-files "out/JMRI-Modern-UI-${{ needs.build.outputs.version }}-macos.pkg" | head -20
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-installer
+          path: out/*.pkg
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build, macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: '*-installer'
+          merge-multiple: true
+          path: out
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > notes.md <<'NOTES'
+          ## Install
+
+          Quit JMRI first, then run the installer for your computer:
+
+          - **Windows:** `JMRI-Modern-UI-*-windows-setup.exe`. It asks for the JMRI folder (found automatically when JMRI is in Program Files). Windows SmartScreen may warn that the installer is unrecognised: choose **More info → Run anyway**.
+          - **Mac:** `JMRI-Modern-UI-*-macos.pkg`. The package isn't signed by an identified developer, so the first time open it with **right-click → Open** (or **System Settings → Privacy & Security → Open Anyway**).
+
+          Then in JMRI: **Preferences → Start Up → Add → Perform action → Start Web Server**, restart JMRI and open **http://&lt;jmri-computer&gt;:12080/web/modern/** on any phone, tablet or computer on the same network.
+          NOTES
+          gh release create "$GITHUB_REF_NAME" out/* --repo "$GITHUB_REPOSITORY" \
+            --title "JMRI Modern UI ${GITHUB_REF_NAME#v}" --notes-file notes.md --generate-notes
